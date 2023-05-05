@@ -48,7 +48,6 @@ thiserror = "1.0.37"
 
 [dev-dependencies]
 cosmwasm-schema = { version = "1.0.0" }
-terra-cosmwasm = { path = "../../packages/terra-cosmwasm", version = "2.2.1" }
 
 [profile.dev]
 overflow-checks = true

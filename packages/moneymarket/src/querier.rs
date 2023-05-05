@@ -7,7 +7,7 @@ use cosmwasm_std::{
     StdError, StdResult, Uint128, WasmQuery, //QuerierWrapper,
 };
 use cw20::{Cw20QueryMsg, TokenInfoResponse, BalanceResponse as Cw20BalanceResponse};
-use terra_cosmwasm::TerraQuerier;
+
 
 use crate::oracle::{PriceResponse, QueryMsg as OracleQueryMsg};
 
@@ -30,7 +30,7 @@ pub fn query_balance(deps: Deps, account_addr: Addr, denom: String) -> StdResult
     Ok(balance.amount.amount.into())
 }
 
-//修改了返回值为Cw20BalanceResponse类型，查询的余额正确，否则查询结果一直为0
+//modify response type to Cw20BalanceResponse，query balance correct，otherwise always is 0
 pub fn query_token_balance(
     deps: Deps,
     contract_addr: Addr,
@@ -87,22 +87,28 @@ pub fn query_supply(deps: Deps, contract_addr: Addr) -> StdResult<Uint256> {
     Ok(Uint256::from(token_info.total_supply))
 }
 
-pub fn query_tax_rate_and_cap(deps: Deps, denom: String) -> StdResult<(Decimal256, Uint256)> {
-    let terra_querier = TerraQuerier::new(&deps.querier);
-    let rate = terra_querier.query_tax_rate()?.rate;
-    let cap = terra_querier.query_tax_cap(denom)?.cap;
+pub fn query_tax_rate_and_cap(_deps: Deps, _denom: String) -> StdResult<(Decimal256, Uint256)> {
+    // let terra_querier = TerraQuerier::new(&deps.querier);
+    // let rate = terra_querier.query_tax_rate()?.rate;
+    // let cap = terra_querier.query_tax_cap(denom)?.cap;
+    let rate = Decimal256::zero();
+    let cap = Uint256::zero();
     Ok((rate.into(), cap.into()))
 }
 
-pub fn query_tax_rate(deps: Deps) -> StdResult<Decimal256> {
-    let terra_querier = TerraQuerier::new(&deps.querier);
-    Ok(terra_querier.query_tax_rate()?.rate.into())
+pub fn query_tax_rate(_deps: Deps) -> StdResult<Decimal256> {
+   // let terra_querier = TerraQuerier::new(&deps.querier);
+   // Ok(terra_querier.query_tax_rate()?.rate.into())
+   Ok(Decimal256::zero().into())
+     
 }
 
-pub fn compute_tax(deps: Deps, coin: &Coin) -> StdResult<Uint256> {
-    let terra_querier = TerraQuerier::new(&deps.querier);
-    let tax_rate = Decimal256::from((terra_querier.query_tax_rate()?).rate);
-    let tax_cap = Uint256::from((terra_querier.query_tax_cap(coin.denom.to_string())?).cap);
+pub fn compute_tax(_deps: Deps, coin: &Coin) -> StdResult<Uint256> {
+    // let terra_querier = TerraQuerier::new(&deps.querier);
+    // let tax_rate = Decimal256::from((terra_querier.query_tax_rate()?).rate);
+    // let tax_cap = Uint256::from((terra_querier.query_tax_cap(coin.denom.to_string())?).cap);
+    let tax_rate = Decimal256::zero();
+    let tax_cap = Uint256::zero();
     let amount = Uint256::from(coin.amount);
     Ok(std::cmp::min(
         amount * Decimal256::one() - amount / (Decimal256::one() + tax_rate),

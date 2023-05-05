@@ -14,19 +14,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "anchor-token"
-version = "0.3.0"
-dependencies = [
- "cosmwasm-bignumber",
- "cosmwasm-std",
- "cosmwasm-storage",
- "cw20",
- "schemars",
- "serde",
- "terra-cosmwasm",
-]
-
-[[package]]
 name = "astroport"
 version = "2.0.0"
 dependencies = [
@@ -548,7 +535,6 @@ dependencies = [
  "cw20",
  "schemars",
  "serde",
- "terra-cosmwasm",
 ]
 
 [[package]]
@@ -608,7 +594,6 @@ dependencies = [
  "moneymarket",
  "schemars",
  "serde",
- "terra-cosmwasm",
  "thiserror",
 ]
 
@@ -625,7 +610,6 @@ dependencies = [
  "protobuf 2.28.0",
  "schemars",
  "serde",
- "terra-cosmwasm",
  "thiserror",
 ]
 
@@ -662,7 +646,6 @@ dependencies = [
  "moneymarket-overseer",
  "schemars",
  "serde",
- "terra-cosmwasm",
  "thiserror",
 ]
 
@@ -963,16 +946,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
-]
-
-[[package]]
-name = "terra-cosmwasm"
-version = "2.2.1"
-dependencies = [
- "cosmwasm-schema",
- "cosmwasm-std",
- "schemars",
- "serde",
 ]
 
 [[package]]
