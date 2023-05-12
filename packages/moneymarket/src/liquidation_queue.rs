@@ -90,7 +90,6 @@ pub enum Cw20HookMsg {
         fee_address: Option<String>,
         repay_address: Option<String>,
     },
-
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

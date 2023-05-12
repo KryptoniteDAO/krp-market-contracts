@@ -15,8 +15,8 @@ use itertools::Itertools;
 
 /// UST token denomination
 pub const UUSD_DENOM: &str = "uusd";
-/// LUNA token denomination
-pub const ULUNA_DENOM: &str = "uluna";
+/// SEI token denomination
+pub const USEI_DENOM: &str = "usei";
 /// Minimum initial LP share
 pub const MINIMUM_LIQUIDITY_AMOUNT: Uint128 = Uint128::new(1_000);
 
@@ -130,7 +130,7 @@ impl Asset {
 /// # use cosmwasm_std::Addr;
 /// # use astroport::asset::AssetInfo::{NativeToken, Token};
 /// Token { contract_addr: Addr::unchecked("stake...") };
-/// NativeToken { denom: String::from("uluna") };
+/// NativeToken { denom: String::from("usei") };
 /// ```
 #[cw_serde]
 #[derive(Hash, Eq)]

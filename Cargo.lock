@@ -534,6 +534,7 @@ dependencies = [
  "cosmwasm-storage",
  "cw20",
  "schemars",
+ "sei-cosmwasm",
  "serde",
 ]
 
@@ -593,6 +594,7 @@ dependencies = [
  "cw20",
  "moneymarket",
  "schemars",
+ "sei-cosmwasm",
  "serde",
  "thiserror",
 ]
@@ -609,6 +611,7 @@ dependencies = [
  "moneymarket",
  "protobuf 2.28.0",
  "schemars",
+ "sei-cosmwasm",
  "serde",
  "thiserror",
 ]
@@ -645,6 +648,7 @@ dependencies = [
  "moneymarket-oracle",
  "moneymarket-overseer",
  "schemars",
+ "sei-cosmwasm",
  "serde",
  "thiserror",
 ]
