@@ -17,7 +17,7 @@ pub const NATIVE_TOKEN_PRECISION: u8 = 6;
 
 /// Returns a native token's balance for a specific account.
 ///
-/// * **denom** specifies the denomination used to return the balance (e.g uluna).
+/// * **denom** specifies the denomination used to return the balance (e.g usei).
 pub fn query_balance(
     querier: &QuerierWrapper,
     account_addr: impl Into<String>,

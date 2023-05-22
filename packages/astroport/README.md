@@ -6,7 +6,7 @@ This is a collection of common types and queriers which are commonly used in Ast
 
 ### AssetInfo
 
-AssetInfo is a convenience wrapper to represent whether a token is the native one (from a specific chain, like LUNA for Terra) or not. It also returns the contract address of that token.
+AssetInfo is a convenience wrapper to represent whether a token is the native one (from a specific chain, like SEI for Sei) or not. It also returns the contract address of that token.
 
 ```rust
 pub enum AssetInfo {

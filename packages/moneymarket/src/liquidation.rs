@@ -62,7 +62,7 @@ pub enum Cw20HookMsg {
         fee_address: Option<String>,
         repay_address: Option<String>,
     },
-    
+
     SubmitBid {
         collateral_token: String,
         premium_rate: Decimal256,

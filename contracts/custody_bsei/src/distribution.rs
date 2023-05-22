@@ -7,7 +7,7 @@ use cosmwasm_std::{
 use crate::contract::{CLAIM_REWARDS_OPERATION, /*SWAP_TO_STABLE_OPERATION*/};
 use crate::error::ContractError;
 use crate::external::handle::{RewardContractExecuteMsg, RewardContractQueryMsg};
-use crate::state::{read_config, BLunaAccruedRewardsResponse, Config};
+use crate::state::{read_config, BSeiAccruedRewardsResponse, Config};
 
 use moneymarket::querier::{deduct_tax, query_balance};
 //use sei_cosmwasm::{create_swap_msg, Response};
@@ -123,7 +123,7 @@ pub(crate) fn get_accrued_rewards(
     reward_contract_addr: Addr,
     contract_addr: Addr,
 ) -> StdResult<Uint128> {
-    let rewards: BLunaAccruedRewardsResponse =
+    let rewards: BSeiAccruedRewardsResponse =
         deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
             contract_addr: reward_contract_addr.to_string(),
             msg: to_binary(&RewardContractQueryMsg::AccruedRewards {
