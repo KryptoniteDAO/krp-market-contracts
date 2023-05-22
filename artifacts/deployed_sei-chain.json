@@ -1,0 +1,34 @@
+{
+  "aToken": {
+    "codeId": 460,
+    "address": "sei1x9a2l0650zsfjwgq506448azdta85shmqxu5shfqjgxq6p0j9r7qa32cxj"
+  },
+  "market": {
+    "codeId": 461,
+    "address": "sei1h7hpv5n6ksrcz5suwla765qfheldym5sc9tefn0q7lv4duatmfvq9avmyt"
+  },
+  "interestModel": {
+    "codeId": 462,
+    "address": "sei1fc6yfus055e9v7dqq3h8zmh9wrzrr9wf0fqy0pwez2w3sdje3lcqwsyc7l"
+  },
+  "distributionModel": {
+    "codeId": 463,
+    "address": "sei1s4kwqmpm5xvfe9egtjh0mf58e0aahcysduqqr42w0h6j6vzytpqsnmt898"
+  },
+  "oracle": {
+    "codeId": 464,
+    "address": "sei1cak0407tznsyfnegxvfj8c3ea5e3pwwjhku6xw79efhrws2744ts2xxwzk"
+  },
+  "overseer": {
+    "codeId": 465,
+    "address": "sei156ksg660lgjd0d9q2rp8pne4kqegjfw0dqmeeye86x8075v2x74qq2wx6p"
+  },
+  "liquidationQueue": {
+    "codeId": 466,
+    "address": "sei1apuggv907c520gt2fvy44uezxpjdzmqqm7ah5z8d64rnzhz227pq7a3c0j"
+  },
+  "custodyBSei": {
+    "codeId": 467,
+    "address": "sei102508734hk07kcjp8j6seff7yw70tgwu9nrsuytf8favl594ff4qcd0v7c"
+  }
+}
