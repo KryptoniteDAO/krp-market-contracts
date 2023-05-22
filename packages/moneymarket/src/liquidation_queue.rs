@@ -79,6 +79,14 @@ pub enum ExecuteMsg {
         collateral_token: String,
         bids_idx: Option<Vec<Uint128>>,
     },
+    /// after receive collateral asset denom forms execute bid
+    ExecuteBid {
+        liquidator: String,
+        repay_address: String,
+        fee_address: String,
+        collateral_denom: String,
+        amount: Uint256,
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

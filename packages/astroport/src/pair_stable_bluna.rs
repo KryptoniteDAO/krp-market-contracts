@@ -1,10 +1,7 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
 
-use crate::asset::{Asset, PairInfo};
-use crate::pair::{
-    ConfigResponse, CumulativePricesResponse, PoolResponse, ReverseSimulationResponse,
-    SimulationResponse,
-};
+use crate::asset::{Asset};
+
 use cosmwasm_std::{Addr, Binary, Decimal, Uint128};
 use cw20::Cw20ReceiveMsg;
 

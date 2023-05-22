@@ -7,7 +7,7 @@ use crate::state::{
 use cosmwasm_bignumber::Uint256;
 use cosmwasm_std::{
     attr, to_binary, Addr, CanonicalAddr, CosmosMsg, Deps, DepsMut, MessageInfo, Response,
-    StdResult, WasmMsg,
+    StdResult, WasmMsg, StdError,
 };
 use cw20::Cw20ExecuteMsg;
 use moneymarket::custody::{BorrowerResponse, BorrowersResponse};
@@ -15,12 +15,15 @@ use moneymarket::liquidation::Cw20HookMsg as LiquidationCw20HookMsg;
 
 
 /// Deposit new collateral
-/// Executor: bAsset token contract
+/// Executor: borrower
 pub fn deposit_collateral(
     deps: DepsMut,
-    borrower: Addr,
+    borrower: Addr, 
     amount: Uint256,
 ) -> Result<Response, ContractError> {
+
+    let config = read_config(deps.storage)?;
+
     let borrower_raw = deps.api.addr_canonicalize(borrower.as_str())?;
     let mut borrower_info: BorrowerInfo = read_borrower_info(deps.storage, &borrower_raw);
 
@@ -29,8 +32,21 @@ pub fn deposit_collateral(
     borrower_info.spendable += amount;
 
     store_borrower_info(deps.storage, &borrower_raw, &borrower_info)?;
-
-    Ok(Response::new().add_attributes(vec![
+    
+    Ok(Response::new().
+    add_message(CosmosMsg::Wasm(WasmMsg::Execute 
+        { 
+            contract_addr: deps.api.addr_humanize(&config.overseer_contract)?.to_string(), 
+            msg: to_binary(&moneymarket::overseer::ExecuteMsg::LockCollateral 
+                { 
+                    borrower: borrower.to_string(), 
+                    collaterals: vec![
+                        (deps.api.addr_humanize(&config.collateral_token)?.to_string(), amount),                            
+                    ]
+                })?, 
+            funds: vec![],
+        } )).
+    add_attributes(vec![
         attr("action", "deposit_collateral"),
         attr("borrower", borrower.as_str()),
         attr("amount", amount.to_string()),
@@ -38,15 +54,14 @@ pub fn deposit_collateral(
 }
 
 /// Withdraw spendable collateral or a specified amount of collateral
-/// Executor: borrower
+/// Executor: overseer contract
 pub fn withdraw_collateral(
     deps: DepsMut,
-    info: MessageInfo,
+    borrower: String,
     amount: Option<Uint256>,
 ) -> Result<Response, ContractError> {
     let config: Config = read_config(deps.storage)?;
 
-    let borrower = info.sender;
     let borrower_raw = deps.api.addr_canonicalize(borrower.as_str())?;
     let mut borrower_info: BorrowerInfo = read_borrower_info(deps.storage, &borrower_raw);
 
@@ -98,7 +113,9 @@ pub fn lock_collateral(
 ) -> Result<Response, ContractError> {
     let config: Config = read_config(deps.storage)?;
     if deps.api.addr_canonicalize(info.sender.as_str())? != config.overseer_contract {
-        return Err(ContractError::Unauthorized {});
+        return Err(ContractError::Std(StdError::generic_err(format!(
+            "info.sender address: {}  overseer contract address: {}",
+            info.sender.as_str(), config.overseer_contract.to_string()))));
     }
 
     let borrower_raw: CanonicalAddr = deps.api.addr_canonicalize(borrower.as_str())?;
@@ -134,10 +151,10 @@ pub fn unlock_collateral(
 
     let borrower_raw: CanonicalAddr = deps.api.addr_canonicalize(borrower.as_str())?;
     let mut borrower_info: BorrowerInfo = read_borrower_info(deps.storage, &borrower_raw);
-    let borrowed_amt = borrower_info.balance - borrower_info.spendable;
-    if amount > borrowed_amt {
+    let locked_amount = borrower_info.balance - borrower_info.spendable;
+    if amount > locked_amount {
         return Err(ContractError::UnlockAmountExceedsLocked(
-            borrowed_amt.into(),
+            locked_amount.into(),
         ));
     }
 
@@ -165,16 +182,16 @@ pub fn liquidate_collateral(
 
     let borrower_raw: CanonicalAddr = deps.api.addr_canonicalize(borrower.as_str())?;
     let mut borrower_info: BorrowerInfo = read_borrower_info(deps.storage, &borrower_raw);
-    let borrowed_amt = borrower_info.balance - borrower_info.spendable;
-    if amount > borrowed_amt {
+    let locked_amount = borrower_info.balance - borrower_info.spendable;
+    if amount > locked_amount {
         return Err(ContractError::LiquidationAmountExceedsLocked(
-            borrowed_amt.into(),
+            locked_amount.into(),
         ));
     }
 
     borrower_info.balance = borrower_info.balance - amount;
     store_borrower_info(deps.storage, &borrower_raw, &borrower_info)?;
-    
+
     Ok(Response::new()
         .add_message(CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: deps

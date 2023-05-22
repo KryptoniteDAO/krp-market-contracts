@@ -75,7 +75,7 @@ pub fn execute(
             unlock_collateral(deps, info, borrower_addr, amount)
         }
         ExecuteMsg::DistributeRewards {} => distribute_rewards(deps, env, info),
-        ExecuteMsg::WithdrawCollateral { amount } => withdraw_collateral(deps, info, amount),
+        ExecuteMsg::WithdrawCollateral { borrower, amount } => withdraw_collateral(deps, borrower, amount),
         ExecuteMsg::LiquidateCollateral {
             liquidator,
             borrower,

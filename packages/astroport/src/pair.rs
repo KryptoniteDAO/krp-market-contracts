@@ -1,6 +1,6 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
 
-use crate::asset::{Asset, AssetInfo, PairInfo};
+use crate::asset::{Asset, AssetInfo};
 
 use cosmwasm_std::{from_slice, Addr, Binary, Decimal, QuerierWrapper, StdResult, Uint128};
 use cw20::Cw20ReceiveMsg;
