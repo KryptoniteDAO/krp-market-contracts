@@ -105,6 +105,7 @@ pub enum ExecuteMsg {
     /// User operations
     ////////////////////
     LockCollateral {
+        borrower: String,
         collaterals: TokensHuman, // <(Collateral Token, Amount)>
     },
     UnlockCollateral {

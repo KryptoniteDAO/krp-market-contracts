@@ -9,8 +9,8 @@ use cw20::Cw20ReceiveMsg;
 pub struct InstantiateMsg {
     /// owner address
     pub owner: String,
-    /// bAsset token address
-    pub collateral_token: String,
+    /// bAsset native token address
+    pub collateral_denom: String,
     /// overseer contract address
     pub overseer_contract: String,
     /// market contract address
@@ -40,6 +40,7 @@ pub enum ExecuteMsg {
         owner: Option<String>,
         liquidation_contract: Option<String>,
     },
+ 
     /// Make specified amount of tokens unspendable
     LockCollateral { borrower: String, amount: Uint256 },
     /// Make specified amount of collateral tokens spendable
@@ -62,11 +63,12 @@ pub enum ExecuteMsg {
     /// Withdraw spendable collateral token.
     /// If the amount is not given,
     /// return all spendable collateral
-    WithdrawCollateral {
+    WithdrawCollateral {  
         borrower: String, 
         amount: Option<Uint256> 
     },
-
+   
+    
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -97,7 +99,7 @@ pub enum QueryMsg {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct ConfigResponse {
     pub owner: String,
-    pub collateral_token: String,
+    pub collateral_denom: String,
     pub overseer_contract: String,
     pub market_contract: String,
     pub reward_contract: String,

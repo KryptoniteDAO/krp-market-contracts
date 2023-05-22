@@ -1,10 +1,7 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
 
 use cosmwasm_std::{StdError, StdResult, Uint128};
-use cw20::{
-    AllAccountsResponse, AllAllowancesResponse, AllowanceResponse, BalanceResponse, Cw20Coin,
-    DownloadLogoResponse, Logo, MarketingInfoResponse, MinterResponse, TokenInfoResponse,
-};
+use cw20::{ Cw20Coin, Logo, MinterResponse};
 
 /// This structure describes the marketing info settings such as project, description, and token logo.
 #[cw_serde]

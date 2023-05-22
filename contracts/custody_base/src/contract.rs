@@ -1,15 +1,14 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    attr, from_binary, to_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo, Reply, Response,
-    StdResult,
+    attr, from_binary, to_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo, Response,
+    StdResult, StdError,
 };
 
 use crate::collateral::{
     deposit_collateral, liquidate_collateral, lock_collateral, query_borrower, query_borrowers,
     unlock_collateral, withdraw_collateral,
 };
-use crate::distribution::{distribute_hook, distribute_rewards, swap_to_stable_denom};
 use crate::error::ContractError;
 use crate::state::{read_config, store_config, Config};
 
@@ -18,6 +17,7 @@ use moneymarket::common::optional_addr_validate;
 use moneymarket::custody::{
     ConfigResponse, Cw20HookMsg, ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg,
 };
+
 
 pub const CLAIM_REWARDS_OPERATION: u64 = 1u64;
 pub const SWAP_TO_STABLE_OPERATION: u64 = 2u64;
@@ -48,7 +48,7 @@ pub fn instantiate(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
     deps: DepsMut,
-    env: Env,
+    _env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
@@ -74,8 +74,8 @@ pub fn execute(
             let borrower_addr = deps.api.addr_validate(&borrower)?;
             unlock_collateral(deps, info, borrower_addr, amount)
         }
-        ExecuteMsg::DistributeRewards {} => distribute_rewards(deps, env, info),
-        ExecuteMsg::WithdrawCollateral { borrower, amount } => withdraw_collateral(deps, borrower, amount),
+        ExecuteMsg::DistributeRewards {} => Ok(Response::new()),
+        ExecuteMsg::WithdrawCollateral {borrower, amount } => withdraw_collateral(deps, borrower, amount),
         ExecuteMsg::LiquidateCollateral {
             liquidator,
             borrower,
@@ -88,34 +88,18 @@ pub fn execute(
     }
 }
 
-#[cfg_attr(not(feature = "library"), entry_point)]
-pub fn reply(
-    deps: DepsMut,
-    env: Env,
-    msg: Reply,
-) -> Result<Response, ContractError> {
-    match msg.id {
-        // ClaimRewards callback
-        CLAIM_REWARDS_OPERATION => swap_to_stable_denom(deps, env),
-        // Swap to stable callback
-        SWAP_TO_STABLE_OPERATION => distribute_hook(deps, env),
-        _ => Err(ContractError::InvalidReplyId {}),
-    }
-}
-
 pub fn receive_cw20(
     deps: DepsMut,
     info: MessageInfo,
     cw20_msg: Cw20ReceiveMsg,
 ) -> Result<Response, ContractError> {
     let contract_addr = info.sender;
-
     match from_binary(&cw20_msg.msg) {
         Ok(Cw20HookMsg::DepositCollateral {}) => {
             // only asset contract can execute this message
             let config: Config = read_config(deps.storage)?;
             if deps.api.addr_canonicalize(contract_addr.as_str())? != config.collateral_token {
-                return Err(ContractError::Unauthorized {});
+                return Err(ContractError::Std(StdError::generic_err(format!("receive cw20 and depoist collateral Unauthorized {}", contract_addr.to_string()))));
             }
 
             let cw20_sender_addr = deps.api.addr_validate(&cw20_msg.sender)?;
@@ -123,6 +107,7 @@ pub fn receive_cw20(
         }
         _ => Err(ContractError::MissingDepositCollateralHook {}),
     }
+
 }
 
 pub fn update_config(

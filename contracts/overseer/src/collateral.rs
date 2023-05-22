@@ -3,13 +3,12 @@
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::{
     attr, to_binary, Addr, BankMsg, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response,
-    StdResult, SubMsg, WasmMsg, 
+    StdResult, SubMsg, WasmMsg, StdError,
 };
-use cosmwasm_std::StdError;
 use crate::error::ContractError;
 use crate::querier::{query_borrower_info, query_liquidation_amount};
 use crate::state::{
-    read_all_collaterals, read_collaterals, read_config, read_whitelist_elem, store_collaterals,
+    read_all_collaterals, read_collaterals, read_config, read_whitelist_elem,read_whitelist, store_collaterals,
     Config, WhitelistElem,
 };
 
@@ -17,16 +16,32 @@ use moneymarket::custody::ExecuteMsg as CustodyExecuteMsg;
 use moneymarket::liquidation::LiquidationAmountResponse;
 use moneymarket::market::{BorrowerInfoResponse, ExecuteMsg as MarketExecuteMsg};
 use moneymarket::oracle::PriceResponse;
-use moneymarket::overseer::{AllCollateralsResponse, BorrowLimitResponse, CollateralsResponse};
-use moneymarket::querier::{query_balance, query_price, TimeConstraints, query_token_balance};
+use moneymarket::overseer::{AllCollateralsResponse, BorrowLimitResponse, CollateralsResponse, WhitelistResponseElem};
+use moneymarket::querier::{query_balance, query_price, TimeConstraints};
 use moneymarket::tokens::{Tokens, TokensHuman, TokensMath, TokensToHuman, TokensToRaw};
 
 pub fn lock_collateral(
     deps: DepsMut,
     info: MessageInfo,
+    borrower: String,
     collaterals_human: TokensHuman,
 ) -> Result<Response, ContractError> {
-    let borrower_raw = deps.api.addr_canonicalize(info.sender.as_str())?;
+    
+    let whitelist: Vec<WhitelistResponseElem> = read_whitelist(deps.as_ref(), None, None)?;
+    
+    let mut is_white_custody = false;
+    for elem in whitelist.iter() {
+        if info.sender.to_string() == elem.custody_contract.clone() {    
+            is_white_custody = true;
+            break;
+        }
+    }
+    if false == is_white_custody {
+        return Err(ContractError::Std(StdError::generic_err(format!("sender {} lock collateral Unauthorized", info.sender.to_string()))));
+    }
+    
+
+    let borrower_raw = deps.api.addr_canonicalize(borrower.as_str())?;
     let mut cur_collaterals: Tokens = read_collaterals(deps.storage, &borrower_raw);
 
     let collaterals: Tokens = collaterals_human.to_raw(deps.as_ref())?;
@@ -44,7 +59,7 @@ pub fn lock_collateral(
                 .to_string(),
             funds: vec![],
             msg: to_binary(&CustodyExecuteMsg::LockCollateral {
-                borrower: info.sender.to_string(),
+                borrower: borrower.clone(),
                 amount: collateral.1,
             })?,
         }));
@@ -110,6 +125,18 @@ pub fn unlock_collateral(
                 amount: collateral.1,
             })?,
         })));
+
+        messages.push(SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute { 
+            contract_addr: deps
+            .api
+            .addr_humanize(&whitelist_elem.custody_contract)?
+            .to_string(),
+            funds: vec![],
+            msg: to_binary(&CustodyExecuteMsg::WithdrawCollateral {
+                borrower: borrower.to_string(),
+                amount: Some(collateral.1),
+            })?,
+        })));
     }
 
     // Logging stuff, so can be removed
@@ -164,7 +191,7 @@ pub fn liquidate_collateral(
         &cur_collaterals.to_human(deps.as_ref())?,
         collateral_prices,
     )?;
-    //return Err(ContractError::Std(StdError::generic_err("liquidate collateral compute_borrow_limit")));
+
     let liquidation_amount = liquidation_amount_res.collaterals.to_raw(deps.as_ref())?;
 
     // Store left collaterals

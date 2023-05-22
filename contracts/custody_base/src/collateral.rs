@@ -13,7 +13,6 @@ use cw20::Cw20ExecuteMsg;
 use moneymarket::custody::{BorrowerResponse, BorrowersResponse};
 use moneymarket::liquidation::Cw20HookMsg as LiquidationCw20HookMsg;
 
-
 /// Deposit new collateral
 /// Executor: borrower
 pub fn deposit_collateral(

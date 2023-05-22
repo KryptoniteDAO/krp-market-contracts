@@ -1,10 +1,9 @@
-use astroport::querier::query_token_balance;
+
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
     attr, to_binary, Addr, BankMsg, Binary, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo,
-    Response, StdResult, Uint128, WasmMsg, StdError,
-};
+    Response, StdResult, Uint128, WasmMsg};
 use std::cmp::{max, min};
 
 use crate::collateral::{
@@ -23,7 +22,6 @@ use crate::state::{
 
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use moneymarket::common::optional_addr_validate;
-use moneymarket::custody::ExecuteMsg as CustodyExecuteMsg;
 use moneymarket::market::EpochStateResponse;
 use moneymarket::market::ExecuteMsg as MarketExecuteMsg;
 use moneymarket::overseer::{
@@ -32,7 +30,6 @@ use moneymarket::overseer::{
 };
 use moneymarket::querier::{deduct_tax, query_balance};
 
-use cw20::{Cw20ExecuteMsg};
 
 pub const BLOCKS_PER_YEAR: u128 = 4656810;
 
@@ -180,8 +177,8 @@ pub fn execute(
             interest_buffer,
             distributed_interest,
         } => update_epoch_state(deps, env, info, interest_buffer, distributed_interest),
-        ExecuteMsg::LockCollateral { collaterals } => {
-            lock_collateral(deps,  info, collaterals) }
+        ExecuteMsg::LockCollateral { borrower, collaterals } => {
+            lock_collateral(deps,  info, borrower, collaterals) }
         ExecuteMsg::UnlockCollateral { collaterals } => {
             unlock_collateral(deps, env, info, collaterals)
         }

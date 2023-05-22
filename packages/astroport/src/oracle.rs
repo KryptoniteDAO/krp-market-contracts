@@ -1,6 +1,6 @@
 use crate::asset::AssetInfo;
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Uint128, Uint256};
+use cosmwasm_std::{Uint128};
 
 /// This structure stores general parameters for the contract.
 #[cw_serde]

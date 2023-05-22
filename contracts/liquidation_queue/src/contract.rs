@@ -106,6 +106,26 @@ pub fn execute(deps: DepsMut, env: Env, info: MessageInfo, msg: ExecuteMsg) ->Re
             collateral_token,
             bids_idx,
         } => claim_liquidations(deps, env, info, collateral_token, bids_idx),
+        ExecuteMsg::ExecuteBid {
+            liquidator, 
+            repay_address, 
+            fee_address,
+            collateral_denom,
+            amount,
+        } => {
+            let sender = deps.api.addr_canonicalize(&info.sender.as_str())?.to_string();
+            let collateral_token = collateral_denom;
+            execute_liquidation(
+                deps,
+                env,
+                sender,
+                liquidator,
+                repay_address,
+                fee_address,
+                collateral_token,
+                amount,
+            )
+        }
     }
 }
 
