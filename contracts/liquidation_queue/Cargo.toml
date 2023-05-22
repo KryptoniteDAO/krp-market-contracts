@@ -45,6 +45,7 @@ bigint = "4"
 thiserror = "1.0.37"
 
 [dev-dependencies]
+sei-cosmwasm = "0.4.10"
 cosmwasm-schema = { version = "1.0.0" }
 
 [profile.dev]

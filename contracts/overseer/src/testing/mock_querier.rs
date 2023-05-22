@@ -14,7 +14,7 @@ use moneymarket::market::{BorrowerInfoResponse, EpochStateResponse, StateRespons
 use moneymarket::oracle::PriceResponse;
 use moneymarket::tokens::TokensHuman;
 
-use terra_cosmwasm::{TaxCapResponse, TaxRateResponse, TerraQuery, TerraQueryWrapper, TerraRoute};
+use sei_cosmwasm::{SeiQuery, SeiQueryWrapper, SeiRoute};
 
 use std::str::FromStr;
 
@@ -56,11 +56,12 @@ pub fn mock_dependencies(
         storage: MockStorage::default(),
         api: MockApi::default(),
         querier: custom_querier,
+        custom_query_type: Default::default(),
     }
 }
 
 pub struct WasmMockQuerier {
-    base: MockQuerier<TerraQueryWrapper>,
+    base: MockQuerier<SeiQueryWrapper>,
     tax_querier: TaxQuerier,
     epoch_state_querier: EpochStateQuerier,
     oracle_price_querier: OraclePriceQuerier,
@@ -170,7 +171,7 @@ pub(crate) fn borrower_amount_to_map(
 impl Querier for WasmMockQuerier {
     fn raw_query(&self, bin_request: &[u8]) -> QuerierResult {
         // MockQuerier doesn't support Custom, so we ignore it completely here
-        let request: QueryRequest<TerraQueryWrapper> = match from_slice(bin_request) {
+        let request: QueryRequest<SeiQueryWrapper> = match from_slice(bin_request) {
             Ok(v) => v,
             Err(e) => {
                 return SystemResult::Err(SystemError::InvalidRequest {
@@ -208,33 +209,33 @@ pub(crate) fn liquidation_percent_to_map(
 }
 
 impl WasmMockQuerier {
-    pub fn handle_query(&self, request: &QueryRequest<TerraQueryWrapper>) -> QuerierResult {
+    pub fn handle_query(&self, request: &QueryRequest<SeiQueryWrapper>) -> QuerierResult {
         match &request {
-            QueryRequest::Custom(TerraQueryWrapper { route, query_data }) => {
-                if &TerraRoute::Treasury == route {
-                    match query_data {
-                        TerraQuery::TaxRate {} => {
-                            let res = TaxRateResponse {
-                                rate: self.tax_querier.rate,
-                            };
-                            SystemResult::Ok(ContractResult::from(to_binary(&res)))
-                        }
-                        TerraQuery::TaxCap { denom } => {
-                            let cap = self
-                                .tax_querier
-                                .caps
-                                .get(denom)
-                                .copied()
-                                .unwrap_or_default();
-                            let res = TaxCapResponse { cap };
-                            SystemResult::Ok(ContractResult::from(to_binary(&res)))
-                        }
-                        _ => panic!("DO NOT ENTER HERE"),
-                    }
-                } else {
-                    panic!("DO NOT ENTER HERE")
-                }
-            }
+            // QueryRequest::Custom(SeiQueryWrapper { route, query_data }) => {
+            //     if &SeiRoute::Treasury == route {
+            //         match query_data {
+            //             SeiQuery::TaxRate {} => {
+            //                 let res = TaxRateResponse {
+            //                     rate: self.tax_querier.rate,
+            //                 };
+            //                 SystemResult::Ok(ContractResult::from(to_binary(&res)))
+            //             }
+            //             SeiQuery::TaxCap { denom } => {
+            //                 let cap = self
+            //                     .tax_querier
+            //                     .caps
+            //                     .get(denom)
+            //                     .copied()
+            //                     .unwrap_or_default();
+            //                 let res = TaxCapResponse { cap };
+            //                 SystemResult::Ok(ContractResult::from(to_binary(&res)))
+            //             }
+            //             _ => panic!("DO NOT ENTER HERE"),
+            //         }
+            //     } else {
+            //         panic!("DO NOT ENTER HERE")
+            //     }
+            // }
             QueryRequest::Wasm(WasmQuery::Smart { contract_addr, msg }) => {
                 match from_binary(msg).unwrap() {
                     QueryMsg::State { block_height: _ } => {
@@ -249,7 +250,7 @@ impl WasmMockQuerier {
                                     global_interest_index: Decimal256::from_str("1000000.0")
                                         .unwrap(),
                                     global_reward_index: Decimal256::zero(),
-                                    anc_emission_rate: Decimal256::zero(),
+                                    // anc_emission_rate: Decimal256::zero(),
                                     prev_atoken_supply: Uint256::zero(),
                                     prev_exchange_rate: Decimal256::zero(),
                                 })))
@@ -352,7 +353,7 @@ impl WasmMockQuerier {
 }
 
 impl WasmMockQuerier {
-    pub fn new(base: MockQuerier<TerraQueryWrapper>) -> Self {
+    pub fn new(base: MockQuerier<SeiQueryWrapper>) -> Self {
         WasmMockQuerier {
             base,
             tax_querier: TaxQuerier::default(),

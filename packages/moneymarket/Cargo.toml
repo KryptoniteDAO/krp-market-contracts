@@ -25,6 +25,7 @@ schemars = "0.8.8"
 serde = { version = "1.0.137", default-features = false, features = ["derive"] }
 
 [dev-dependencies]
+sei-cosmwasm = "0.4.10"
 cosmwasm-schema = { version = "1.0.0" }
 
 [profile.dev]

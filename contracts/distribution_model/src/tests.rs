@@ -2,14 +2,14 @@ use crate::contract::{execute, instantiate, query};
 use crate::error::ContractError;
 use cosmwasm_bignumber::Decimal256;
 use cosmwasm_std::from_binary;
-use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
+use cosmwasm_std::testing::{mock_dependencies_with_balance, mock_env, mock_info};
 use moneymarket::distribution_model::{
     AncEmissionRateResponse, ConfigResponse, ExecuteMsg, InstantiateMsg, QueryMsg,
 };
 
 #[test]
 fn proper_initialization() {
-    let mut deps = mock_dependencies(&[]);
+    let mut deps = mock_dependencies_with_balance(&[]);
 
     let msg = InstantiateMsg {
         owner: "owner0000".to_string(),
@@ -37,7 +37,7 @@ fn proper_initialization() {
 
 #[test]
 fn update_config() {
-    let mut deps = mock_dependencies(&[]);
+    let mut deps = mock_dependencies_with_balance(&[]);
 
     let msg = InstantiateMsg {
         owner: "owner0000".to_string(),
@@ -91,7 +91,7 @@ fn update_config() {
 
 #[test]
 fn proper_emission_rate() {
-    let mut deps = mock_dependencies(&[]);
+    let mut deps = mock_dependencies_with_balance(&[]);
 
     let msg = InstantiateMsg {
         owner: "owner0000".to_string(),

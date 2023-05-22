@@ -11,6 +11,7 @@ use moneymarket::liquidation_queue::{
     BidResponse, CollateralInfoResponse, ConfigResponse, Cw20HookMsg, ExecuteMsg, InstantiateMsg,
     QueryMsg,
 };
+use crate::error::ContractError;
 
 #[test]
 fn proper_initialization() {
@@ -162,7 +163,7 @@ fn update_config() {
     };
 
     let err = execute(deps.as_mut(), mock_env(), info, msg).unwrap_err();
-    assert_eq!(err, StdError::generic_err("unauthorized"));
+    assert_eq!(err, ContractError::Std(StdError::generic_err("unauthorized")));
 }
 
 #[test]
@@ -204,20 +205,20 @@ fn submit_bid() {
     let err = execute(deps.as_mut(), mock_env(), info, msg.clone()).unwrap_err();
     assert_eq!(
         err,
-        StdError::generic_err("No uusd assets have been provided")
+        ContractError::Std(StdError::generic_err("No uusd assets have been provided"))
     );
 
     let info = mock_info(
         "addr0000",
         &[Coin {
-            denom: "uluna".to_string(),
+            denom: "usei".to_string(),
             amount: Uint128::from(1000000u128),
         }],
     );
     let err = execute(deps.as_mut(), mock_env(), info, msg.clone()).unwrap_err();
     assert_eq!(
         err,
-        StdError::generic_err("Invalid asset provided, only uusd allowed")
+        ContractError::Std(StdError::generic_err("Invalid asset provided, only uusd allowed"))
     );
 
     let info = mock_info(
@@ -228,7 +229,7 @@ fn submit_bid() {
                 amount: Uint128::from(1000000u128),
             },
             Coin {
-                denom: "uluna".to_string(),
+                denom: "usei".to_string(),
                 amount: Uint128::from(1000000u128),
             },
         ],
@@ -236,7 +237,7 @@ fn submit_bid() {
     let err = execute(deps.as_mut(), mock_env(), info, msg.clone()).unwrap_err();
     assert_eq!(
         err,
-        StdError::generic_err("Invalid asset provided, only uusd allowed")
+        ContractError::Std(StdError::generic_err("Invalid asset provided, only uusd allowed"))
     );
 
     let info = mock_info(
@@ -333,7 +334,7 @@ fn activate_bid() {
     let mut env = mock_env();
     env.block.time = wait_end;
     let err = execute(deps.as_mut(), env, info, msg.clone()).unwrap_err();
-    assert_eq!(err, StdError::generic_err("unauthorized"));
+    assert_eq!(err, ContractError::Std(StdError::generic_err("unauthorized")));
 
     let info = mock_info("addr0000", &[]);
     let mut env = mock_env();
@@ -341,7 +342,7 @@ fn activate_bid() {
     let err = execute(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap_err();
     assert_eq!(
         err,
-        StdError::generic_err(format!("Wait period expires at {}", wait_end.seconds()))
+        ContractError::Std(StdError::generic_err(format!("Wait period expires at {}", wait_end.seconds())))
     );
 
     // graceful return when idx is not specified
@@ -632,7 +633,7 @@ fn execute_bid() {
     let err = execute(deps.as_mut(), env.clone(), info.clone(), msg).unwrap_err();
     assert_eq!(
         err,
-        StdError::generic_err("Unauthorized: only custody contract can execute liquidations",)
+        ContractError::Std(StdError::generic_err("Unauthorized: only custody contract can execute liquidations",))
     );
 
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
@@ -725,7 +726,7 @@ fn execute_bid() {
     let res = execute(deps.as_mut(), env, info, msg).unwrap_err();
     assert_eq!(
         res,
-        StdError::generic_err("Not enough bids to execute this liquidation")
+        ContractError::Std(StdError::generic_err("Not enough bids to execute this liquidation"))
     );
 }
 
@@ -868,7 +869,7 @@ fn update_collateral_info() {
     // unauthorized attempt
     let info = mock_info("addr0000", &[]);
     let err = execute(deps.as_mut(), mock_env(), info, msg.clone()).unwrap_err();
-    assert_eq!(err, StdError::generic_err("unauthorized"));
+    assert_eq!(err, ContractError::Std(StdError::generic_err("unauthorized")));
 
     // successfull attempt
     let info = mock_info("owner0000", &[]);

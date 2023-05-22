@@ -245,9 +245,9 @@ fn whitelist() {
     let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
 
     let msg = ExecuteMsg::Whitelist {
-        name: "bluna".to_string(),
-        symbol: "bluna".to_string(),
-        collateral_token: "bluna".to_string(),
+        name: "bsei".to_string(),
+        symbol: "bsei".to_string(),
+        collateral_token: "bsei".to_string(),
         custody_contract: "custody".to_string(),
         max_ltv: Decimal256::percent(60),
     };
@@ -265,9 +265,9 @@ fn whitelist() {
         res.attributes,
         vec![
             attr("action", "register_whitelist"),
-            attr("name", "bluna"),
-            attr("symbol", "bluna"),
-            attr("collateral_token", "bluna"),
+            attr("name", "bsei"),
+            attr("symbol", "bsei"),
+            attr("collateral_token", "bsei"),
             attr("custody_contract", "custody"),
             attr("LTV", "0.6"),
         ]
@@ -277,7 +277,7 @@ fn whitelist() {
         deps.as_ref(),
         mock_env(),
         QueryMsg::Whitelist {
-            collateral_token: Some("bluna".to_string()),
+            collateral_token: Some("bsei".to_string()),
             start_after: None,
             limit: None,
         },
@@ -288,9 +288,9 @@ fn whitelist() {
         whitelist_res,
         WhitelistResponse {
             elems: vec![WhitelistResponseElem {
-                name: "bluna".to_string(),
-                symbol: "bluna".to_string(),
-                collateral_token: "bluna".to_string(),
+                name: "bsei".to_string(),
+                symbol: "bsei".to_string(),
+                collateral_token: "bsei".to_string(),
                 custody_contract: "custody".to_string(),
                 max_ltv: Decimal256::percent(60),
             }]
@@ -299,9 +299,9 @@ fn whitelist() {
 
     //Attempting to whitelist already whitelisted collaterals
     let msg = ExecuteMsg::Whitelist {
-        name: "bluna".to_string(),
-        symbol: "bluna".to_string(),
-        collateral_token: "bluna".to_string(),
+        name: "bsei".to_string(),
+        symbol: "bsei".to_string(),
+        collateral_token: "bsei".to_string(),
         custody_contract: "custody".to_string(),
         max_ltv: Decimal256::percent(60),
     };
@@ -314,7 +314,7 @@ fn whitelist() {
     }
 
     let msg = ExecuteMsg::UpdateWhitelist {
-        collateral_token: "bluna".to_string(),
+        collateral_token: "bsei".to_string(),
         custody_contract: Some("custody2".to_string()),
         max_ltv: Some(Decimal256::percent(30)),
     };
@@ -332,7 +332,7 @@ fn whitelist() {
         res.attributes,
         vec![
             attr("action", "update_whitelist"),
-            attr("collateral_token", "bluna"),
+            attr("collateral_token", "bsei"),
             attr("custody_contract", "custody2"),
             attr("LTV", "0.3"),
         ]
@@ -342,7 +342,7 @@ fn whitelist() {
         deps.as_ref(),
         mock_env(),
         QueryMsg::Whitelist {
-            collateral_token: Some("bluna".to_string()),
+            collateral_token: Some("bsei".to_string()),
             start_after: None,
             limit: None,
         },
@@ -353,9 +353,9 @@ fn whitelist() {
         whitelist_res,
         WhitelistResponse {
             elems: vec![WhitelistResponseElem {
-                name: "bluna".to_string(),
-                symbol: "bluna".to_string(),
-                collateral_token: "bluna".to_string(),
+                name: "bsei".to_string(),
+                symbol: "bsei".to_string(),
+                collateral_token: "bsei".to_string(),
                 custody_contract: "custody2".to_string(),
                 max_ltv: Decimal256::percent(30),
             }]
@@ -405,7 +405,7 @@ fn execute_epoch_operations() {
         .unwrap()
         .to_string();
 
-    let bluna_collat_token = deps
+    let bsei_collat_token = deps
         .api
         .addr_humanize(&CanonicalAddr::from(vec![
             1, 1, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -416,10 +416,10 @@ fn execute_epoch_operations() {
 
     // store whitelist elems
     let msg = ExecuteMsg::Whitelist {
-        name: "bluna".to_string(),
-        symbol: "bluna".to_string(),
-        collateral_token: bluna_collat_token,
-        custody_contract: "custody_bluna".to_string(),
+        name: "bsei".to_string(),
+        symbol: "bsei".to_string(),
+        collateral_token: bsei_collat_token,
+        custody_contract: "custody_bsei".to_string(),
         max_ltv: Decimal256::percent(60),
     };
 
@@ -475,7 +475,7 @@ fn execute_epoch_operations() {
                 msg: to_binary(&CustodyExecuteMsg::DistributeRewards {}).unwrap(),
             })),
             SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
-                contract_addr: "custody_bluna".to_string(),
+                contract_addr: "custody_bsei".to_string(),
                 funds: vec![],
                 msg: to_binary(&CustodyExecuteMsg::DistributeRewards {}).unwrap(),
             })),
@@ -565,7 +565,7 @@ fn execute_epoch_operations() {
                 msg: to_binary(&CustodyExecuteMsg::DistributeRewards {}).unwrap(),
             })),
             SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
-                contract_addr: "custody_bluna".to_string(),
+                contract_addr: "custody_bsei".to_string(),
                 funds: vec![],
                 msg: to_binary(&CustodyExecuteMsg::DistributeRewards {}).unwrap(),
             })),
@@ -627,10 +627,10 @@ fn update_epoch_state() {
 
     // store whitelist elems
     let msg = ExecuteMsg::Whitelist {
-        name: "bluna".to_string(),
-        symbol: "bluna".to_string(),
-        collateral_token: "bluna".to_string(),
-        custody_contract: "custody_bluna".to_string(),
+        name: "bsei".to_string(),
+        symbol: "bsei".to_string(),
+        collateral_token: "bsei".to_string(),
+        custody_contract: "custody_bsei".to_string(),
         max_ltv: Decimal256::percent(60),
     };
 
@@ -786,7 +786,7 @@ fn lock_collateral() {
         .unwrap()
         .to_string();
 
-    let bluna_collat_token = deps
+    let bsei_collat_token = deps
         .api
         .addr_humanize(&CanonicalAddr::from(vec![
             1, 1, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -797,10 +797,10 @@ fn lock_collateral() {
 
     // store whitelist elems
     let msg = ExecuteMsg::Whitelist {
-        name: "bluna".to_string(),
-        symbol: "bluna".to_string(),
-        collateral_token: bluna_collat_token.clone(),
-        custody_contract: "custody_bluna".to_string(),
+        name: "bsei".to_string(),
+        symbol: "bsei".to_string(),
+        collateral_token: bsei_collat_token.clone(),
+        custody_contract: "custody_bsei".to_string(),
         max_ltv: Decimal256::percent(60),
     };
 
@@ -818,7 +818,7 @@ fn lock_collateral() {
 
     let msg = ExecuteMsg::LockCollateral {
         collaterals: vec![
-            (bluna_collat_token.clone(), Uint256::from(1000000u64)),
+            (bsei_collat_token.clone(), Uint256::from(1000000u64)),
             (batom_collat_token.clone(), Uint256::from(10000000u64)),
         ],
     };
@@ -828,7 +828,7 @@ fn lock_collateral() {
         res.messages,
         vec![
             SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
-                contract_addr: "custody_bluna".to_string(),
+                contract_addr: "custody_bsei".to_string(),
                 funds: vec![],
                 msg: to_binary(&CustodyExecuteMsg::LockCollateral {
                     borrower: "addr0000".to_string(),
@@ -857,7 +857,7 @@ fn lock_collateral() {
                 "collaterals",
                 format!(
                     "1000000{},10000000{}",
-                    bluna_collat_token, batom_collat_token
+                    bsei_collat_token, batom_collat_token
                 )
             ),
         ]
@@ -878,7 +878,7 @@ fn lock_collateral() {
             borrower: "addr0000".to_string(),
             collaterals: vec![
                 (batom_collat_token.clone(), Uint256::from(10000000u64)),
-                (bluna_collat_token.clone(), Uint256::from(1000000u64)),
+                (bsei_collat_token.clone(), Uint256::from(1000000u64)),
             ]
         }
     );
@@ -900,7 +900,7 @@ fn lock_collateral() {
                 borrower: "addr0000".to_string(),
                 collaterals: vec![
                     (batom_collat_token, Uint256::from(10000000u64)),
-                    (bluna_collat_token, Uint256::from(1000000u64)),
+                    (bsei_collat_token, Uint256::from(1000000u64)),
                 ]
             }]
         }
@@ -938,10 +938,10 @@ fn unlock_collateral() {
 
     // store whitelist elems
     let msg = ExecuteMsg::Whitelist {
-        name: "bluna".to_string(),
-        symbol: "bluna".to_string(),
-        collateral_token: "bluna".to_string(),
-        custody_contract: "custody_bluna".to_string(),
+        name: "bsei".to_string(),
+        symbol: "bsei".to_string(),
+        collateral_token: "bsei".to_string(),
+        custody_contract: "custody_bsei".to_string(),
         max_ltv: Decimal256::percent(60),
     };
 
@@ -958,7 +958,7 @@ fn unlock_collateral() {
     let _res = execute(deps.as_mut(), env.clone(), info, msg);
 
     let collaterals = vec![
-        ("bluna".to_string(), Uint256::from(1000000u64)),
+        ("bsei".to_string(), Uint256::from(1000000u64)),
         ("batom".to_string(), Uint256::from(10000000u64)),
     ];
 
@@ -970,7 +970,7 @@ fn unlock_collateral() {
     // Failed to unlock more than locked amount
     let msg = ExecuteMsg::UnlockCollateral {
         collaterals: vec![
-            ("bluna".to_string(), Uint256::from(1000001u64)),
+            ("bsei".to_string(), Uint256::from(1000001u64)),
             ("batom".to_string(), Uint256::from(10000001u64)),
         ],
     };
@@ -982,7 +982,7 @@ fn unlock_collateral() {
 
     deps.querier.with_oracle_price(&[
         (
-            &("bluna".to_string(), "uusd".to_string()),
+            &("bsei".to_string(), "uusd".to_string()),
             &(
                 Decimal256::from_ratio(1000u64, 1u64),
                 env.block.time.seconds(),
@@ -1007,7 +1007,7 @@ fn unlock_collateral() {
     // cannot unlock any tokens
     // Failed to unlock more than locked amount
     let msg = ExecuteMsg::UnlockCollateral {
-        collaterals: vec![("bluna".to_string(), Uint256::one())],
+        collaterals: vec![("bsei".to_string(), Uint256::one())],
     };
     let res = execute(deps.as_mut(), env.clone(), info.clone(), msg);
     match res {
@@ -1040,9 +1040,9 @@ fn unlock_collateral() {
     let borrow_limit_res: BorrowLimitResponse = from_binary(&res).unwrap();
     assert_eq!(borrow_limit_res.borrow_limit, Uint256::from(12600000000u64),);
 
-    // Cannot unlock 2bluna
+    // Cannot unlock 2bsei
     let msg = ExecuteMsg::UnlockCollateral {
-        collaterals: vec![("bluna".to_string(), Uint256::from(2u64))],
+        collaterals: vec![("bsei".to_string(), Uint256::from(2u64))],
     };
     let res = execute(deps.as_mut(), env.clone(), info.clone(), msg);
     match res {
@@ -1050,15 +1050,15 @@ fn unlock_collateral() {
         _ => panic!("DO NOT ENTER HERE"),
     }
 
-    // Can unlock 1bluna
+    // Can unlock 1bsei
     let msg = ExecuteMsg::UnlockCollateral {
-        collaterals: vec![("bluna".to_string(), Uint256::one())],
+        collaterals: vec![("bsei".to_string(), Uint256::one())],
     };
     let res = execute(deps.as_mut(), env.clone(), info.clone(), msg).unwrap();
     assert_eq!(
         res.messages,
         vec![SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: "custody_bluna".to_string(),
+            contract_addr: "custody_bsei".to_string(),
             funds: vec![],
             msg: to_binary(&CustodyExecuteMsg::UnlockCollateral {
                 borrower: "addr0000".to_string(),
@@ -1073,7 +1073,7 @@ fn unlock_collateral() {
         vec![
             attr("action", "unlock_collateral"),
             attr("borrower", "addr0000"),
-            attr("collaterals", "1bluna"),
+            attr("collaterals", "1bsei"),
         ]
     );
 
@@ -1083,7 +1083,7 @@ fn unlock_collateral() {
 
     let msg = ExecuteMsg::UnlockCollateral {
         collaterals: vec![
-            ("bluna".to_string(), Uint256::from(1u128)),
+            ("bsei".to_string(), Uint256::from(1u128)),
             ("batom".to_string(), Uint256::from(1u128)),
         ],
     };
@@ -1092,7 +1092,7 @@ fn unlock_collateral() {
         res.messages,
         vec![
             SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
-                contract_addr: "custody_bluna".to_string(),
+                contract_addr: "custody_bsei".to_string(),
                 funds: vec![],
                 msg: to_binary(&CustodyExecuteMsg::UnlockCollateral {
                     borrower: "addr0000".to_string(),
@@ -1116,7 +1116,7 @@ fn unlock_collateral() {
         vec![
             attr("action", "unlock_collateral"),
             attr("borrower", "addr0000"),
-            attr("collaterals", "1bluna,1batom"),
+            attr("collaterals", "1bsei,1batom"),
         ]
     );
 }
@@ -1156,26 +1156,30 @@ fn liquidate_collateral() {
         .api
         .addr_humanize(&CanonicalAddr::from(vec![
             1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0,
         ]))
         .unwrap()
         .to_string();
 
-    let bluna_collat_token = deps
+    let bsei_collat_token = deps
         .api
         .addr_humanize(&CanonicalAddr::from(vec![
             1, 1, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0,
         ]))
         .unwrap()
         .to_string();
 
     // store whitelist elems
     let msg = ExecuteMsg::Whitelist {
-        name: "bluna".to_string(),
-        symbol: "bluna".to_string(),
-        collateral_token: bluna_collat_token.clone(),
-        custody_contract: "custody_bluna".to_string(),
+        name: "bsei".to_string(),
+        symbol: "bsei".to_string(),
+        collateral_token: bsei_collat_token.clone(),
+        custody_contract: "custody_bsei".to_string(),
         max_ltv: Decimal256::percent(60),
     };
 
@@ -1192,7 +1196,7 @@ fn liquidate_collateral() {
     let _res = execute(deps.as_mut(), env.clone(), info, msg);
 
     let collaterals = vec![
-        (bluna_collat_token.clone(), Uint256::from(1000000u64)),
+        (bsei_collat_token.clone(), Uint256::from(1000000u64)),
         (batom_collat_token.clone(), Uint256::from(10000000u64)),
     ];
 
@@ -1203,7 +1207,7 @@ fn liquidate_collateral() {
 
     deps.querier.with_oracle_price(&[
         (
-            &(bluna_collat_token.clone(), "uusd".to_string()),
+            &(bsei_collat_token.clone(), "uusd".to_string()),
             &(
                 Decimal256::from_ratio(1000u64, 1u64),
                 env.block.time.seconds(),
@@ -1252,7 +1256,7 @@ fn liquidate_collateral() {
                 .unwrap(),
             })),
             SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
-                contract_addr: "custody_bluna".to_string(),
+                contract_addr: "custody_bsei".to_string(),
                 funds: vec![],
                 msg: to_binary(&CustodyExecuteMsg::LiquidateCollateral {
                     liquidator: "addr0001".to_string(),
@@ -1288,7 +1292,7 @@ fn liquidate_collateral() {
             borrower: "addr0000".to_string(),
             collaterals: vec![
                 (batom_collat_token, Uint256::from(9900000u64)),
-                (bluna_collat_token, Uint256::from(990000u64)),
+                (bsei_collat_token, Uint256::from(990000u64)),
             ]
         }
     );
@@ -1327,10 +1331,10 @@ fn dynamic_rate_model() {
 
     // store whitelist elems
     let msg = ExecuteMsg::Whitelist {
-        name: "bluna".to_string(),
-        symbol: "bluna".to_string(),
-        collateral_token: "bluna".to_string(),
-        custody_contract: "custody_bluna".to_string(),
+        name: "bsei".to_string(),
+        symbol: "bsei".to_string(),
+        collateral_token: "bsei".to_string(),
+        custody_contract: "custody_bsei".to_string(),
         max_ltv: Decimal256::percent(60),
     };
 

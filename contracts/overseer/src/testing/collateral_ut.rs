@@ -42,10 +42,10 @@ fn proper_compute_borrow_limit() {
 
     // store whitelist elems
     let msg = ExecuteMsg::Whitelist {
-        name: "bluna".to_string(),
-        symbol: "bluna".to_string(),
-        collateral_token: "bluna".to_string(),
-        custody_contract: "custody_bluna".to_string(),
+        name: "bsei".to_string(),
+        symbol: "bsei".to_string(),
+        collateral_token: "bsei".to_string(),
+        custody_contract: "custody_bsei".to_string(),
         max_ltv: Decimal256::percent(60),
     };
 
@@ -63,7 +63,7 @@ fn proper_compute_borrow_limit() {
 
     deps.querier.with_oracle_price(&[
         (
-            &("bluna".to_string(), "uusd".to_string()),
+            &("bsei".to_string(), "uusd".to_string()),
             &(
                 Decimal256::from_uint256(1000u128),
                 env.block.time.seconds(),
@@ -82,7 +82,7 @@ fn proper_compute_borrow_limit() {
 
     let mut collaterals: Tokens = vec![];
     let token1: Token = (
-        deps.api.addr_canonicalize("bluna").unwrap(),
+        deps.api.addr_canonicalize("bsei").unwrap(),
         Uint256::from(1000u128),
     );
     collaterals.push(token1);

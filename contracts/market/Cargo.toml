@@ -47,6 +47,7 @@ serde = { version = "1.0.137", default-features = false, features = ["derive"] }
 thiserror = "1.0.37"
 
 [dev-dependencies]
+sei-cosmwasm = "0.4.10"
 cosmwasm-schema = { version = "1.0.0" }
 
 [profile.dev]
