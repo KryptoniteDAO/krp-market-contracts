@@ -1,6 +1,6 @@
 # Pyth oracle
 
-Encapsulate [https://pyth.network/](pyth) for easy use by Kryptonite
+Encapsulate [pyth](https://pyth.network/) for easy use by Kryptonite
 
 ## InstantiateMsg
 
@@ -22,7 +22,7 @@ Set the relevant information for updating oracle.
 - `asset` is the asset or denom
 - `price_feed_id` is [pyth feed id](https://pyth.network/developers/price-feed-ids)
 - `price_feed_symbol` is [pyth feed symbol](https://pyth.network/developers/price-feed-ids)
-- `price_feed_decimal` 
+- `price_feed_decimal`
 - `price_feed_age` is the maximum age of the price feed in seconds
 - `check_feed_age` is whether to check the age of the price feed
 
