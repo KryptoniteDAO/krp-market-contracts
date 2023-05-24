@@ -1,8 +1,8 @@
 use cosmwasm_std::{Binary,entry_point, Deps, DepsMut, Env, MessageInfo, Response, StdResult, to_binary};
 use pyth_sdk_cw::PriceIdentifier;
+use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::error::ContractError;
 use crate::handler::{change_owner, config_feed_info, set_config_feed_valid};
-use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::querier::{query_config, query_price, query_prices, query_pyth_feeder_config};
 use crate::state::{Config, store_config};
 

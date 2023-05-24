@@ -1,8 +1,9 @@
 use cosmwasm_std::{Deps, Env, StdError, StdResult};
 use pyth_sdk_cw::{Price, PriceFeedResponse, query_price_feed};
 use cosmwasm_bignumber::Decimal256;
-use crate::error::ContractError;
 use crate::msg::{ConfigResponse, PriceResponse, PythFeederConfigResponse};
+
+use crate::error::ContractError;
 use crate::state::{Config, PythFeederConfig, read_config, read_pyth_feeder_config};
 use bigint::uint::U256;
 
