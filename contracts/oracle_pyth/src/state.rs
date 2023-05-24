@@ -24,7 +24,7 @@ pub struct Config {
     pub pyth_contract: CanonicalAddr,
 }
 
-pub const PYTH_FEEDER_CONFIG: Map<&[u8], PythFeederConfig> = Map::new("pyth_feeder_config");
+pub const PYTH_FEEDER_CONFIG: Map<String, PythFeederConfig> = Map::new("pyth_feeder_config");
 
 static KEY_CONFIG: &[u8] = b"config";
 
@@ -36,16 +36,16 @@ pub fn read_config(storage: &dyn Storage) -> StdResult<Config> {
     singleton_read(storage, KEY_CONFIG).load()
 }
 
-pub fn store_pyth_feeder_config(storage: &mut dyn Storage, asset_contract_addr: &CanonicalAddr, pyth_feeder_config: &PythFeederConfig) -> Result<PythFeederConfig, StdError> {
-    PYTH_FEEDER_CONFIG.update(storage, asset_contract_addr.as_slice(), |old| match old {
+pub fn store_pyth_feeder_config(storage: &mut dyn Storage, asset: String, pyth_feeder_config: &PythFeederConfig) -> Result<PythFeederConfig, StdError> {
+    PYTH_FEEDER_CONFIG.update(storage, asset, |old| match old {
         Some(_) => Ok(pyth_feeder_config.clone()),
         None => Ok(pyth_feeder_config.clone()),
     })
 }
 
-pub fn read_pyth_feeder_config(storage: &dyn Storage, asset_contract_addr: &CanonicalAddr) -> Result<PythFeederConfig, StdError> {
+pub fn read_pyth_feeder_config(storage: &dyn Storage, asset: String) -> Result<PythFeederConfig, StdError> {
     let pyth_feeder_config = PYTH_FEEDER_CONFIG
-        .may_load(storage, asset_contract_addr.as_slice())?
+        .may_load(storage, asset)?
         .ok_or_else(|| StdError::generic_err("Pyth feeder config not found"));
     Ok(pyth_feeder_config.unwrap())
 }

@@ -56,7 +56,7 @@ pub struct ConfigFeedInfoParams {
 #[cw_serde]
 pub enum ExecuteMsg {
     ConfigFeedInfo {
-        asset_address: String,
+        asset: String,
         price_feed_id: String,
         price_feed_symbol: String,
         price_feed_decimal: u32,
@@ -65,7 +65,7 @@ pub enum ExecuteMsg {
     },
 
     SetConfigFeedValid {
-        asset_address: String,
+        asset: String,
         valid: bool,
     },
     ChangeOwner {
@@ -76,10 +76,10 @@ pub enum ExecuteMsg {
 #[cw_serde]
 pub enum QueryMsg {
     QueryPrice {
-        asset_address: String
+        asset: String
     },
     QueryConfig {},
     QueryPythFeederConfig {
-        asset_address: String,
+        asset: String,
     },
 }

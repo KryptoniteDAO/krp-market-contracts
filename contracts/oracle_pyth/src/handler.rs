@@ -8,7 +8,7 @@ use crate::state::{Config, PythFeederConfig, read_config, read_pyth_feeder_confi
  */
 #[allow(clippy::too_many_arguments)]
 pub fn config_feed_info(deps: DepsMut, info: MessageInfo,
-                        asset_address: String, price_feed_id: PriceIdentifier,
+                        asset: String, price_feed_id: PriceIdentifier,
                         price_feed_symbol: String, price_feed_decimal: u32,
                         check_feed_age: bool,
                         price_feed_age: u64) -> Result<Response, ContractError> {
@@ -25,15 +25,12 @@ pub fn config_feed_info(deps: DepsMut, info: MessageInfo,
         check_feed_age: check_feed_age.clone(),
         price_feed_age: price_feed_age.clone(),
     };
-    let asset_addr = deps
-        .api
-        .addr_canonicalize(asset_address.as_str())
-        .map_err(|_| ContractError::InvalidInput {})?;
-    store_pyth_feeder_config(deps.storage, &asset_addr, &pyth_feeder_config)?;
+
+    store_pyth_feeder_config(deps.storage, asset.clone(), &pyth_feeder_config)?;
 
     Ok(Response::new().add_attributes(vec![
         ("action", "config_feed_info"),
-        ("asset_address", asset_address.as_str()),
+        ("asset_address", asset.as_str()),
         ("price_feed_id", &price_feed_id.to_string()),
         ("price_feed_symbol", &price_feed_symbol.clone()),
         ("price_feed_decimal", &price_feed_decimal.to_string()),
@@ -45,24 +42,19 @@ pub fn config_feed_info(deps: DepsMut, info: MessageInfo,
 /**
  * Update the config of the contract
  */
-pub fn set_config_feed_valid(deps: DepsMut, info: MessageInfo, asset_address: String, is_valid: bool) -> Result<Response, ContractError> {
+pub fn set_config_feed_valid(deps: DepsMut, info: MessageInfo, asset: String, is_valid: bool) -> Result<Response, ContractError> {
     let config = read_config(deps.storage)?;
     if deps.api.addr_canonicalize(info.sender.as_str())? != config.owner {
         return Err(ContractError::Unauthorized {});
     }
 
-    let asset_addr = deps
-        .api
-        .addr_canonicalize(asset_address.as_str())
-        .map_err(|_| ContractError::InvalidInput {})?;
-
-    let mut pyth_feeder_config: PythFeederConfig = read_pyth_feeder_config(deps.storage, &asset_addr)?;
+    let mut pyth_feeder_config: PythFeederConfig = read_pyth_feeder_config(deps.storage, asset.clone())?;
     pyth_feeder_config.is_valid = is_valid;
 
-    store_pyth_feeder_config(deps.storage, &asset_addr, &pyth_feeder_config)?;
+    store_pyth_feeder_config(deps.storage, asset.clone(), &pyth_feeder_config)?;
     Ok(Response::new().add_attributes(vec![
         ("action", "set_config_feed_valid"),
-        ("asset_address", asset_address.as_str()),
+        ("asset_address", asset.as_str()),
         ("is_valid", is_valid.to_string().as_str()),
     ]))
 }

@@ -20,9 +20,8 @@ pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
 /**
  * Query the feeder config of the asset
  */
-pub fn query_pyth_feeder_config(deps: Deps, asset_address: String) -> StdResult<PythFeederConfigResponse> {
-    let asset_addr = deps.api.addr_canonicalize(&asset_address)?;
-    let pyth_feeder_config: PythFeederConfig = read_pyth_feeder_config(deps.storage, &asset_addr)?;
+pub fn query_pyth_feeder_config(deps: Deps, asset: String) -> StdResult<PythFeederConfigResponse> {
+    let pyth_feeder_config: PythFeederConfig = read_pyth_feeder_config(deps.storage, asset.clone())?;
     Ok(PythFeederConfigResponse {
         price_feed_id: pyth_feeder_config.price_feed_id,
         price_feed_symbol: pyth_feeder_config.price_feed_symbol.to_string(),
@@ -36,11 +35,10 @@ pub fn query_pyth_feeder_config(deps: Deps, asset_address: String) -> StdResult<
 /**
  * Query the price of the asset
  */
-pub fn query_price(deps: Deps, env: Env, asset_address: String) -> StdResult<PriceResponse> {
+pub fn query_price(deps: Deps, env: Env, asset: String) -> StdResult<PriceResponse> {
     let config: Config = read_config(deps.storage)?;
-    let asset_addr = deps.api.addr_canonicalize(&asset_address)?;
 
-    let pyth_feeder_config: PythFeederConfig = read_pyth_feeder_config(deps.storage, &asset_addr)?;
+    let pyth_feeder_config: PythFeederConfig = read_pyth_feeder_config(deps.storage, asset.clone())?;
 
     let pyth_contract = deps.api.addr_humanize(&config.pyth_contract)?;
 
