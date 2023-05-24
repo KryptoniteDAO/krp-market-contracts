@@ -14,6 +14,30 @@
         }
       },
       "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "deposit_stable"
+      ],
+      "properties": {
+        "deposit_stable": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "repay_stable"
+      ],
+      "properties": {
+        "repay_stable": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
     }
   ]
 }

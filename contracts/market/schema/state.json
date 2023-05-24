@@ -8,7 +8,7 @@
     "global_reward_index",
     "last_interest_updated",
     "last_reward_updated",
-    "prev_aterra_supply",
+    "prev_atoken_supply",
     "prev_exchange_rate",
     "total_liabilities",
     "total_reserves"
@@ -33,7 +33,7 @@
       "format": "uint64",
       "minimum": 0.0
     },
-    "prev_aterra_supply": {
+    "prev_atoken_supply": {
       "$ref": "#/definitions/Uint256"
     },
     "prev_exchange_rate": {

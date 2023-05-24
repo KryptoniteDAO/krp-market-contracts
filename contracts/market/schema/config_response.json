@@ -3,8 +3,9 @@
   "title": "ConfigResponse",
   "type": "object",
   "required": [
-    "aterra_contract",
+    "atoken_contract",
     "collector_contract",
+    "contract_addr",
     "distribution_model",
     "distributor_contract",
     "interest_model",
@@ -14,10 +15,13 @@
     "stable_denom"
   ],
   "properties": {
-    "aterra_contract": {
+    "atoken_contract": {
       "type": "string"
     },
     "collector_contract": {
+      "type": "string"
+    },
+    "contract_addr": {
       "type": "string"
     },
     "distribution_model": {

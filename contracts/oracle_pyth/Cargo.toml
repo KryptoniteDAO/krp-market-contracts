@@ -36,12 +36,11 @@ cw-storage-plus = "0.16.0"
 schemars = "0.8.12"
 serde = { version = "1.0.163", default-features = false, features = ["derive"] }
 pyth-sdk-cw = { version = "1.0.0" }
-cosmwasm-schema = "1.1.10"
 bigint = "4.4.3"
 thiserror = "1.0.37"
 
-[dev-dependencies]
 cosmwasm-schema = "1.1.10"
+[dev-dependencies]
 
 [profile.dev]
 overflow-checks = true
