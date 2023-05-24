@@ -22,6 +22,7 @@ pub struct ChangeOwnerMsg {
 
 #[cw_serde]
 pub struct PriceResponse {
+    pub asset: String,
     pub emv_price: Decimal256,
     pub emv_price_raw: i64,
     pub price: Decimal256,
@@ -77,6 +78,9 @@ pub enum ExecuteMsg {
 pub enum QueryMsg {
     QueryPrice {
         asset: String
+    },
+    QueryPrices {
+        assets: Vec<String>
     },
     QueryConfig {},
     QueryPythFeederConfig {

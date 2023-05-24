@@ -78,6 +78,7 @@ pub fn query_price(deps: Deps, env: Env, asset: String) -> StdResult<PriceRespon
     let feed_time_u64: u64 = ema_price.publish_time.try_into()
         .map_err(|_| ContractError::Std(StdError::generic_err("Failed to convert i64 to u64")))?;
     Ok(PriceResponse {
+        asset: asset.clone(),
         emv_price: evm_price_decimal,
         emv_price_raw: ema_price.price,
         price: current_price_decimal,
@@ -86,7 +87,17 @@ pub fn query_price(deps: Deps, env: Env, asset: String) -> StdResult<PriceRespon
         last_updated_quote: feed_time_u64,
     })
 }
-
+/**
+* Query the prices of the given assets
+*/
+pub fn query_prices(deps: Deps, env: Env, assets: Vec<String>) -> StdResult<Vec<PriceResponse>> {
+    let mut prices = Vec::new();
+    for asset in assets {
+        let price = query_price(deps.clone(), env.clone(), asset)?;
+        prices.push(price);
+    }
+    Ok(prices)
+}
 
 impl From<ContractError> for StdError {
     fn from(error: ContractError) -> Self {
