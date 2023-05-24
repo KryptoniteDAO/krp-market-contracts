@@ -10,13 +10,13 @@ use crate::state::{Config, store_config};
 pub fn instantiate(
     deps: DepsMut,
     _env: Env,
-    info: MessageInfo,
+    _info: MessageInfo,
     msg: InstantiateMsg,
 ) -> StdResult<Response> {
     store_config(
         deps.storage,
         &Config {
-            owner: deps.api.addr_canonicalize(info.sender.as_str())?,
+            owner: deps.api.addr_canonicalize(msg.owner.as_str())?,
             pyth_contract: deps.api.addr_canonicalize(&msg.pyth_contract)?,
         },
     )?;

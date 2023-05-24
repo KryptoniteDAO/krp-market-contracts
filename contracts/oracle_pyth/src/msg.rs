@@ -1,10 +1,12 @@
 use pyth_sdk_cw::PriceIdentifier;
 use cosmwasm_bignumber::Decimal256;
 use cosmwasm_schema::{cw_serde};
+use cosmwasm_std::Addr;
 
 #[cw_serde]
 pub struct InstantiateMsg {
     pub pyth_contract: String,
+    pub owner: Addr,
 }
 
 #[cw_serde]
