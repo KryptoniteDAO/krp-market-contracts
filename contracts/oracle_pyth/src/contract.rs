@@ -1,4 +1,5 @@
 use cosmwasm_std::{Binary,entry_point, Deps, DepsMut, Env, MessageInfo, Response, StdResult, to_binary};
+use pyth_sdk_cw::PriceIdentifier;
 use crate::error::ContractError;
 use crate::handler::{change_owner, config_feed_info, set_config_feed_valid};
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
@@ -31,8 +32,11 @@ pub fn execute(
 ) -> Result<Response, ContractError> {
 
     match msg {
-        ExecuteMsg::ConfigFeedInfo { asset_address, price_feed_id, price_feed_symbol, price_feed_decimal, price_feed_age }
-        => config_feed_info(deps, info, asset_address, price_feed_id, price_feed_symbol, price_feed_decimal, price_feed_age),
+        ExecuteMsg::ConfigFeedInfo { asset_address, price_feed_id, price_feed_symbol, price_feed_decimal,check_feed_age, price_feed_age }
+        => {
+            let price_feed_id_type = PriceIdentifier::from_hex(price_feed_id).unwrap();
+            config_feed_info(deps, info, asset_address, price_feed_id_type, price_feed_symbol, price_feed_decimal,check_feed_age, price_feed_age)
+        },
         ExecuteMsg::SetConfigFeedValid { asset_address, valid } => set_config_feed_valid(deps, info, asset_address, valid),
         ExecuteMsg::ChangeOwner { new_owner } => change_owner(deps, info, new_owner),
     }
@@ -41,7 +45,7 @@ pub fn execute(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
-        QueryMsg::Price { base, quote:_ } => to_binary(&query_price(deps, env, base)?),
+        QueryMsg::QueryPrice { asset_address } => to_binary(&query_price(deps, env, asset_address)?),
         QueryMsg::QueryConfig {} => to_binary(&query_config(deps)?),
         QueryMsg::QueryPythFeederConfig { asset_address } => to_binary(&query_pyth_feeder_config(deps, asset_address)?),
     }

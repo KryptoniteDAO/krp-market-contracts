@@ -7,16 +7,6 @@ pub struct InstantiateMsg {
     pub pyth_contract: String,
 }
 
-
-#[cw_serde]
-pub struct ConfigFeedMsg {
-    pub asset_address: String,
-    pub price_feed_id: PriceIdentifier,
-    pub price_feed_symbol: String,
-    pub price_feed_decimal: u32,
-    pub price_feed_age: u64,
-}
-
 #[cw_serde]
 pub struct SetConfigFeedValidMsg {
     pub asset_address: String,
@@ -30,7 +20,10 @@ pub struct ChangeOwnerMsg {
 
 #[cw_serde]
 pub struct PriceResponse {
-    pub rate: Decimal256,
+    pub emv_price: Decimal256,
+    pub emv_price_raw: i64,
+    pub price: Decimal256,
+    pub price_raw: i64,
     pub last_updated_base: u64,
     pub last_updated_quote: u64,
 }
@@ -41,6 +34,7 @@ pub struct PythFeederConfigResponse {
     pub price_feed_symbol: String,
     pub price_feed_decimal: u32,
     pub price_feed_age: u64,
+    pub check_feed_age: bool,
     pub is_valid: bool,
 }
 #[cw_serde]
@@ -61,9 +55,10 @@ pub struct ConfigFeedInfoParams {
 pub enum ExecuteMsg {
     ConfigFeedInfo {
         asset_address: String,
-        price_feed_id: PriceIdentifier,
+        price_feed_id: String,
         price_feed_symbol: String,
         price_feed_decimal: u32,
+        check_feed_age: bool,
         price_feed_age: u64,
     },
 
@@ -78,9 +73,8 @@ pub enum ExecuteMsg {
 
 #[cw_serde]
 pub enum QueryMsg {
-    Price {
-        base: String,
-        quote: Option<String>,
+    QueryPrice {
+        asset_address: String
     },
     QueryConfig {},
     QueryPythFeederConfig {

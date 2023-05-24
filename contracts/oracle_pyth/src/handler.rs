@@ -10,6 +10,7 @@ use crate::state::{Config, PythFeederConfig, read_config, read_pyth_feeder_confi
 pub fn config_feed_info(deps: DepsMut, info: MessageInfo,
                         asset_address: String, price_feed_id: PriceIdentifier,
                         price_feed_symbol: String, price_feed_decimal: u32,
+                        check_feed_age: bool,
                         price_feed_age: u64) -> Result<Response, ContractError> {
     let config = read_config(deps.storage)?;
     if deps.api.addr_canonicalize(info.sender.as_str())? != config.owner {
@@ -20,8 +21,9 @@ pub fn config_feed_info(deps: DepsMut, info: MessageInfo,
         price_feed_id: price_feed_id.clone(),
         price_feed_symbol: price_feed_symbol.clone(),
         price_feed_decimal: price_feed_decimal.clone(),
-        price_feed_age: price_feed_age.clone(),
         is_valid: true,
+        check_feed_age: check_feed_age.clone(),
+        price_feed_age: price_feed_age.clone(),
     };
     let asset_addr = deps
         .api
@@ -34,8 +36,9 @@ pub fn config_feed_info(deps: DepsMut, info: MessageInfo,
         ("asset_address", asset_address.as_str()),
         ("price_feed_id", &price_feed_id.to_string()),
         ("price_feed_symbol", &price_feed_symbol.clone()),
-        ("asset_address", &price_feed_decimal.to_string()),
-        ("asset_address", &price_feed_age.to_string()),
+        ("price_feed_decimal", &price_feed_decimal.to_string()),
+        ("check_feed_age", &check_feed_age.to_string()),
+        ("price_feed_age", &price_feed_age.to_string()),
     ]))
 }
 

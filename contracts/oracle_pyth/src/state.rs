@@ -13,8 +13,9 @@ pub struct PythFeederConfig {
     pub price_feed_id: PriceIdentifier,
     pub price_feed_symbol: String,
     pub price_feed_decimal: u32,
-    pub price_feed_age: u64,
     pub is_valid: bool,
+    pub check_feed_age: bool,
+    pub price_feed_age: u64,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
