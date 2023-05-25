@@ -3,6 +3,7 @@ use crate::state::{read_config, read_pyth_feeder_config, store_config, store_pyt
 use cosmwasm_std::{DepsMut, MessageInfo, Response};
 use pyth_sdk_cw::PriceIdentifier;
 
+
 /**
  * Update the config of the contract
  */
@@ -92,5 +93,27 @@ pub fn change_owner(
     Ok(Response::new().add_attributes(vec![
         ("action", "change_owner"),
         ("new_owner", new_owner.as_str()),
+    ]))
+}
+
+pub fn change_pyth_contract(
+    deps: DepsMut,
+    info: MessageInfo,
+    new_pyth_contract: String,
+) -> Result<Response, ContractError> {
+    let mut config: Config = read_config(deps.storage)?;
+    if deps.api.addr_canonicalize(info.sender.as_str())? != config.owner {
+        return Err(ContractError::Unauthorized {});
+    }
+
+    config.pyth_contract = deps
+        .api
+        .addr_canonicalize(&new_pyth_contract)
+        .map_err(|_| ContractError::InvalidInput {})?;
+    store_config(deps.storage, &config)?;
+
+    Ok(Response::new().add_attributes(vec![
+        ("action", "change_pyth_contract"),
+        ("new_pyth_contract", new_pyth_contract.as_str()),
     ]))
 }

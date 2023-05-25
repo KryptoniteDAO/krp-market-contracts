@@ -66,7 +66,15 @@ pub enum ExecuteMsg {
     /// return all spendable collateral
     WithdrawCollateral {
         borrower: String,
-        amount: Option<Uint256>
+        amount: Option<Uint256>,
+    },
+
+    UpdateSwapContract {
+        swap_contract: String,
+    },
+    UpdateSwapDenom {
+        swap_denom: String,
+        is_add: bool,
     },
 }
 
@@ -105,6 +113,8 @@ pub struct ConfigResponse {
     pub liquidation_contract: String,
     pub stable_denom: String,
     pub basset_info: BAssetInfo,
+    pub swap_contract: Option<String>,
+    pub swap_denoms: Option<Vec<String>>,
 }
 
 // We define a custom struct for each query response

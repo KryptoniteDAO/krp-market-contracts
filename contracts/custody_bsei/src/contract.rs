@@ -18,6 +18,7 @@ use moneymarket::common::optional_addr_validate;
 use moneymarket::custody::{
     ConfigResponse, Cw20HookMsg, ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg,
 };
+use crate::handler::{update_swap_contract, update_swap_denom};
 
 pub const CLAIM_REWARDS_OPERATION: u64 = 1u64;
 pub const SWAP_TO_STABLE_OPERATION: u64 = 2u64;
@@ -88,6 +89,24 @@ pub fn execute(
             let liquidator_addr = deps.api.addr_validate(&liquidator)?;
             let borrower_addr = deps.api.addr_validate(&borrower)?;
             liquidate_collateral(deps, info, liquidator_addr, borrower_addr, amount)
+        }
+        ExecuteMsg::UpdateSwapContract {
+            swap_contract,
+        } => {
+            update_swap_contract(
+                deps,
+                info,
+                swap_contract)
+        }
+        ExecuteMsg::UpdateSwapDenom {
+            swap_denom,
+            is_add
+        } => {
+            update_swap_denom(
+                deps,
+                info,
+                swap_denom,
+                is_add)
         }
     }
 }
@@ -185,6 +204,8 @@ pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
             .to_string(),
         stable_denom: config.stable_denom,
         basset_info: config.basset_info,
+        swap_contract: Option::from(deps.api.addr_humanize(&config.swap_contract)?.to_string()),
+        swap_denoms: Option::from(config.swap_denoms),
     })
 }
 

@@ -86,6 +86,13 @@ pub fn execute(
             let borrower_addr = deps.api.addr_validate(&borrower)?;
             liquidate_collateral(deps, info, liquidator_addr, borrower_addr, amount)
         }
+        ExecuteMsg::UpdateSwapContract {
+            swap_contract:_,
+        } => Ok(Response::new()),
+        ExecuteMsg::UpdateSwapDenom {
+            swap_denom:_,
+            is_add:_
+        }=> Ok(Response::new()),
     }
 }
 
@@ -173,6 +180,8 @@ pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
             .to_string(),
         stable_denom: config.stable_denom,
         basset_info: config.basset_info,
+        swap_contract: None,
+        swap_denoms: None
     })
 }
 

@@ -1,5 +1,5 @@
 use crate::error::ContractError;
-use crate::handler::{change_owner, config_feed_info, set_config_feed_valid};
+use crate::handler::{change_owner, change_pyth_contract, config_feed_info, set_config_feed_valid};
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::querier::{query_config, query_exchange_rate_by_asset_label, query_price, query_prices, query_pyth_feeder_config};
 use crate::state::{store_config, Config};
@@ -57,6 +57,7 @@ pub fn execute(
             set_config_feed_valid(deps, info, asset, valid)
         }
         ExecuteMsg::ChangeOwner { new_owner } => change_owner(deps, info, new_owner),
+        ExecuteMsg::ChangePythContract { pyth_contract } => change_pyth_contract(deps, info, pyth_contract),
     }
 }
 
