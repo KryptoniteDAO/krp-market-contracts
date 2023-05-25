@@ -59,7 +59,6 @@ pub struct ConfigFeedInfoParams {
 pub enum ExecuteMsg {
     ConfigFeedInfo {
         asset: String,
-        asset_label: String,
         price_feed_id: String,
         price_feed_symbol: String,
         price_feed_decimal: u32,

@@ -1,5 +1,5 @@
 use crate::error::ContractError;
-use crate::state::{read_config, read_pyth_feeder_config, store_config, store_pyth_feeder_config, Config, PythFeederConfig, store_denom_ref_asset};
+use crate::state::{read_config, read_pyth_feeder_config, store_config, store_pyth_feeder_config, Config, PythFeederConfig};
 use cosmwasm_std::{DepsMut, MessageInfo, Response};
 use pyth_sdk_cw::PriceIdentifier;
 
@@ -11,7 +11,6 @@ pub fn config_feed_info(
     deps: DepsMut,
     info: MessageInfo,
     asset: String,
-    asset_label: String,
     price_feed_id: PriceIdentifier,
     price_feed_symbol: String,
     price_feed_decimal: u32,
@@ -33,12 +32,10 @@ pub fn config_feed_info(
     };
 
     store_pyth_feeder_config(deps.storage, asset.clone(), &pyth_feeder_config)?;
-    store_denom_ref_asset(deps.storage, asset_label.clone(), asset.clone())?;
 
     Ok(Response::new().add_attributes(vec![
         ("action", "config_feed_info"),
         ("asset_address", asset.as_str()),
-        ("asset_label", &asset_label.as_str()),
         ("price_feed_id", &price_feed_id.to_string()),
         ("price_feed_symbol", &price_feed_symbol.clone()),
         ("price_feed_decimal", &price_feed_decimal.to_string()),

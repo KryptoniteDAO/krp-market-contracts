@@ -35,7 +35,6 @@ pub fn execute(
     match msg {
         ExecuteMsg::ConfigFeedInfo {
             asset,
-            asset_label,
             price_feed_id,
             price_feed_symbol,
             price_feed_decimal,
@@ -47,7 +46,6 @@ pub fn execute(
                 deps,
                 info,
                 asset,
-                asset_label,
                 price_feed_id_type,
                 price_feed_symbol,
                 price_feed_decimal,

@@ -24,7 +24,6 @@ pub struct Config {
 }
 
 pub const PYTH_FEEDER_CONFIG: Map<String, PythFeederConfig> = Map::new("pyth_feeder_config");
-pub const LABEL_ASSET_MAP: Map<String, String> = Map::new("label_asset_map");
 
 static KEY_CONFIG: &[u8] = b"config";
 
@@ -57,26 +56,6 @@ pub fn read_pyth_feeder_config(
     Ok(pyth_feeder_config.unwrap())
 }
 
-pub fn store_denom_ref_asset(
-    storage: &mut dyn Storage,
-    asset_label: String,
-    asset_address: String,
-) -> Result<String, StdError> {
-    LABEL_ASSET_MAP.update(storage, asset_label, |old| match old {
-        Some(_) => Ok(asset_address.clone()),
-        None => Ok(asset_address.clone()),
-    })
-}
-
-pub fn read_denom_ref_asset(
-    storage: &dyn Storage,
-    asset_label: String,
-) -> Result<String, StdError> {
-    let asset_address = LABEL_ASSET_MAP
-        .may_load(storage, asset_label)?
-        .ok_or_else(|| StdError::generic_err("Pyth feeder config not found"));
-    Ok(asset_address.unwrap())
-}
 
 
 
