@@ -7,21 +7,19 @@ use crate::state::{
 use cosmwasm_bignumber::Uint256;
 use cosmwasm_std::{
     attr, to_binary, Addr, CanonicalAddr, CosmosMsg, Deps, DepsMut, MessageInfo, Response,
-    StdResult, WasmMsg, StdError,
+    StdError, StdResult, WasmMsg,
 };
 use cw20::Cw20ExecuteMsg;
 use moneymarket::custody::{BorrowerResponse, BorrowersResponse};
 use moneymarket::liquidation::Cw20HookMsg as LiquidationCw20HookMsg;
 
-
 /// Deposit new collateral
 /// Executor: borrower
 pub fn deposit_collateral(
     deps: DepsMut,
-    borrower: Addr, 
+    borrower: Addr,
     amount: Uint256,
 ) -> Result<Response, ContractError> {
-
     let config = read_config(deps.storage)?;
 
     let borrower_raw = deps.api.addr_canonicalize(borrower.as_str())?;
@@ -32,25 +30,29 @@ pub fn deposit_collateral(
     borrower_info.spendable += amount;
 
     store_borrower_info(deps.storage, &borrower_raw, &borrower_info)?;
-    
-    Ok(Response::new().
-    add_message(CosmosMsg::Wasm(WasmMsg::Execute 
-        { 
-            contract_addr: deps.api.addr_humanize(&config.overseer_contract)?.to_string(), 
-            msg: to_binary(&moneymarket::overseer::ExecuteMsg::LockCollateral 
-                { 
-                    borrower: borrower.to_string(), 
-                    collaterals: vec![
-                        (deps.api.addr_humanize(&config.collateral_token)?.to_string(), amount),                            
-                    ]
-                })?, 
+
+    Ok(Response::new()
+        .add_message(CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: deps
+                .api
+                .addr_humanize(&config.overseer_contract)?
+                .to_string(),
+            msg: to_binary(&moneymarket::overseer::ExecuteMsg::LockCollateral {
+                borrower: borrower.to_string(),
+                collaterals: vec![(
+                    deps.api
+                        .addr_humanize(&config.collateral_token)?
+                        .to_string(),
+                    amount,
+                )],
+            })?,
             funds: vec![],
-        } )).
-    add_attributes(vec![
-        attr("action", "deposit_collateral"),
-        attr("borrower", borrower.as_str()),
-        attr("amount", amount.to_string()),
-    ]))
+        }))
+        .add_attributes(vec![
+            attr("action", "deposit_collateral"),
+            attr("borrower", borrower.as_str()),
+            attr("amount", amount.to_string()),
+        ]))
 }
 
 /// Withdraw spendable collateral or a specified amount of collateral
@@ -115,7 +117,9 @@ pub fn lock_collateral(
     if deps.api.addr_canonicalize(info.sender.as_str())? != config.overseer_contract {
         return Err(ContractError::Std(StdError::generic_err(format!(
             "info.sender address: {}  overseer contract address: {}",
-            info.sender.as_str(), config.overseer_contract.to_string()))));
+            info.sender.as_str(),
+            config.overseer_contract.to_string()
+        ))));
     }
 
     let borrower_raw: CanonicalAddr = deps.api.addr_canonicalize(borrower.as_str())?;

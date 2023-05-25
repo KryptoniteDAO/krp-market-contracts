@@ -1,7 +1,7 @@
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::{
     attr, to_binary, Addr, BankMsg, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response,
-    StdResult, Uint128, WasmMsg
+    StdResult, Uint128, WasmMsg,
 };
 
 use crate::borrow::{compute_interest, compute_reward};
@@ -14,11 +14,10 @@ use moneymarket::querier::{deduct_tax, query_balance, query_supply};
 pub fn deposit_stable(
     deps: DepsMut,
     env: Env,
-    info: MessageInfo
+    info: MessageInfo,
 ) -> Result<Response, ContractError> {
     let config: Config = read_config(deps.storage)?;
 
-    
     // Check base denom deposit
     let deposit_amount: Uint256 = info
         .funds
@@ -26,7 +25,7 @@ pub fn deposit_stable(
         .find(|c| c.denom == config.stable_denom)
         .map(|c| Uint256::from(c.amount))
         .unwrap_or_else(Uint256::zero);
-    
+
     // Cannot deposit zero amount
     if deposit_amount.is_zero() {
         return Err(ContractError::ZeroDeposit(config.stable_denom));
@@ -34,7 +33,7 @@ pub fn deposit_stable(
 
     // Update interest related state
     let mut state: State = read_state(deps.storage)?;
-    
+
     compute_interest(
         deps.as_ref(),
         &config,
@@ -42,9 +41,9 @@ pub fn deposit_stable(
         env.block.height,
         Some(deposit_amount),
     )?;
-   
+
     compute_reward(&mut state, env.block.height);
-   
+
     // Load anchor token exchange rate with updated state
     let exchange_rate =
         compute_exchange_rate(deps.as_ref(), &config, &state, Some(deposit_amount))?;
@@ -141,15 +140,15 @@ pub fn redeem_stable(
             //         recipient: sender.to_string(),
             //         amount: redeem_amount.into(),
             //     })?,
-                CosmosMsg::Bank(BankMsg::Send {
-                    to_address: sender.to_string(),
-                    amount: vec![deduct_tax(
-                        deps.as_ref(),
-                        Coin {
-                            denom: config.stable_denom,
-                            amount: redeem_amount.into(),
-                        },
-                    )?],
+            CosmosMsg::Bank(BankMsg::Send {
+                to_address: sender.to_string(),
+                amount: vec![deduct_tax(
+                    deps.as_ref(),
+                    Coin {
+                        denom: config.stable_denom,
+                        amount: redeem_amount.into(),
+                    },
+                )?],
             }),
         ])
         .add_attributes(vec![
@@ -182,13 +181,13 @@ pub(crate) fn compute_exchange_rate(
     deposit_amount: Option<Uint256>,
 ) -> StdResult<Decimal256> {
     let atoken_supply = query_supply(deps, deps.api.addr_humanize(&config.atoken_contract)?)?;
-    
+
     let balance = query_balance(
         deps,
         deps.api.addr_humanize(&config.contract_addr)?,
         config.stable_denom.to_string(),
     )? - deposit_amount.unwrap_or_else(Uint256::zero);
-     
+
     // let balance: Uint256 = query_token_balance(
     //     deps,
     //     deps.api.addr_humanize(&config.stable_contract)?,

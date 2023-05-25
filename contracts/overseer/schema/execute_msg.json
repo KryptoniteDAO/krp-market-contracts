@@ -260,9 +260,13 @@
         "lock_collateral": {
           "type": "object",
           "required": [
+            "borrower",
             "collaterals"
           ],
           "properties": {
+            "borrower": {
+              "type": "string"
+            },
             "collaterals": {
               "type": "array",
               "items": {

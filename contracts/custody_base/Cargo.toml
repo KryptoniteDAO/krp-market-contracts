@@ -1,6 +1,6 @@
 [package]
 name = "moneymarket-custody-base"
-version = "0.0.0"
+version = "0.0.1"
 authors = ["Terraform Labs, PTE."]
 edition = "2018"
 description = "A MoneyMarket base custody contract - handles over collateral operations"

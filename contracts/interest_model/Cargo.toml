@@ -1,6 +1,6 @@
 [package]
 name = "moneymarket-interest-model"
-version = "0.0.0"
+version = "0.0.1"
 authors = ["<smithmonnnnnnn@gmail.com>"]
 edition = "2018"
 description = "A MoneyMarket interest contract - handles over interest model for bAssets"

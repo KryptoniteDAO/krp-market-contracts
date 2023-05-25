@@ -69,9 +69,8 @@ pub fn query_liquidation_amount(
         config.safe_ratio
     };
 
-    
-    let base_fee_deductor = (Decimal256::one() - config.bid_fee)
-        * (Decimal256::one() - config.liquidator_fee);
+    let base_fee_deductor =
+        (Decimal256::one() - config.bid_fee) * (Decimal256::one() - config.liquidator_fee);
 
     let mut result: Vec<(String, Uint256)> = vec![];
     for (i, collateral) in collaterals.iter().enumerate() {
@@ -112,9 +111,8 @@ pub fn query_liquidation_amount(
             g_x += slot_available_bids;
 
             if g_x > f_x {
-                let nominator = collateral_borrow_amount - safe_borrow
-                    + (discounted_price * prev_x)
-                    - prev_g_x;
+                let nominator =
+                    collateral_borrow_amount - safe_borrow + (discounted_price * prev_x) - prev_g_x;
                 let denominator = price
                     * (((Decimal256::one() - premium_rate) * base_fee_deductor)
                         - (safe_ratio * max_ltv));

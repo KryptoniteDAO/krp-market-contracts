@@ -1,17 +1,25 @@
+use crate::error::ContractError;
+use crate::state::{
+    read_config, read_pyth_feeder_config, store_config, store_pyth_feeder_config, Config,
+    PythFeederConfig,
+};
 use cosmwasm_std::{DepsMut, MessageInfo, Response};
 use pyth_sdk_cw::PriceIdentifier;
-use crate::error::ContractError;
-use crate::state::{Config, PythFeederConfig, read_config, read_pyth_feeder_config, store_config, store_pyth_feeder_config};
 
 /**
  * Update the config of the contract
  */
 #[allow(clippy::too_many_arguments)]
-pub fn config_feed_info(deps: DepsMut, info: MessageInfo,
-                        asset: String, price_feed_id: PriceIdentifier,
-                        price_feed_symbol: String, price_feed_decimal: u32,
-                        check_feed_age: bool,
-                        price_feed_age: u64) -> Result<Response, ContractError> {
+pub fn config_feed_info(
+    deps: DepsMut,
+    info: MessageInfo,
+    asset: String,
+    price_feed_id: PriceIdentifier,
+    price_feed_symbol: String,
+    price_feed_decimal: u32,
+    check_feed_age: bool,
+    price_feed_age: u64,
+) -> Result<Response, ContractError> {
     let config = read_config(deps.storage)?;
     if deps.api.addr_canonicalize(info.sender.as_str())? != config.owner {
         return Err(ContractError::Unauthorized {});
@@ -42,13 +50,19 @@ pub fn config_feed_info(deps: DepsMut, info: MessageInfo,
 /**
  * Update the config of the contract
  */
-pub fn set_config_feed_valid(deps: DepsMut, info: MessageInfo, asset: String, is_valid: bool) -> Result<Response, ContractError> {
+pub fn set_config_feed_valid(
+    deps: DepsMut,
+    info: MessageInfo,
+    asset: String,
+    is_valid: bool,
+) -> Result<Response, ContractError> {
     let config = read_config(deps.storage)?;
     if deps.api.addr_canonicalize(info.sender.as_str())? != config.owner {
         return Err(ContractError::Unauthorized {});
     }
 
-    let mut pyth_feeder_config: PythFeederConfig = read_pyth_feeder_config(deps.storage, asset.clone())?;
+    let mut pyth_feeder_config: PythFeederConfig =
+        read_pyth_feeder_config(deps.storage, asset.clone())?;
     pyth_feeder_config.is_valid = is_valid;
 
     store_pyth_feeder_config(deps.storage, asset.clone(), &pyth_feeder_config)?;
@@ -62,7 +76,11 @@ pub fn set_config_feed_valid(deps: DepsMut, info: MessageInfo, asset: String, is
 /**
  * Change the owner of the contract
  */
-pub fn change_owner(deps: DepsMut, info: MessageInfo, new_owner: String) -> Result<Response, ContractError> {
+pub fn change_owner(
+    deps: DepsMut,
+    info: MessageInfo,
+    new_owner: String,
+) -> Result<Response, ContractError> {
     let mut config: Config = read_config(deps.storage)?;
     if deps.api.addr_canonicalize(info.sender.as_str())? != config.owner {
         return Err(ContractError::Unauthorized {});
@@ -79,4 +97,3 @@ pub fn change_owner(deps: DepsMut, info: MessageInfo, new_owner: String) -> Resu
         ("new_owner", new_owner.as_str()),
     ]))
 }
-

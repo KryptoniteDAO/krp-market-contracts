@@ -1,14 +1,14 @@
-
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
     attr, to_binary, Addr, BankMsg, Binary, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo,
-    Response, StdResult, Uint128, WasmMsg};
+    Response, StdResult, Uint128, WasmMsg,
+};
 use std::cmp::{max, min};
 
 use crate::collateral::{
-    liquidate_collateral, query_all_collaterals, query_borrow_limit, query_collaterals,
-    repay_stable_from_yield_reserve, unlock_collateral, lock_collateral, 
+    liquidate_collateral, lock_collateral, query_all_collaterals, query_borrow_limit,
+    query_collaterals, repay_stable_from_yield_reserve, unlock_collateral,
 };
 use crate::error::ContractError;
 use crate::querier::query_epoch_state;
@@ -29,7 +29,6 @@ use moneymarket::overseer::{
     WhitelistResponseElem,
 };
 use moneymarket::querier::{deduct_tax, query_balance};
-
 
 pub const BLOCKS_PER_YEAR: u128 = 4656810;
 
@@ -177,8 +176,10 @@ pub fn execute(
             interest_buffer,
             distributed_interest,
         } => update_epoch_state(deps, env, info, interest_buffer, distributed_interest),
-        ExecuteMsg::LockCollateral { borrower, collaterals } => {
-            lock_collateral(deps,  info, borrower, collaterals) }
+        ExecuteMsg::LockCollateral {
+            borrower,
+            collaterals,
+        } => lock_collateral(deps, info, borrower, collaterals),
         ExecuteMsg::UnlockCollateral { collaterals } => {
             unlock_collateral(deps, env, info, collaterals)
         }
@@ -471,14 +472,12 @@ pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<Response, Con
         (effective_deposit_rate - Decimal256::one()) / Decimal256::from_uint256(blocks);
 
     let mut messages: Vec<CosmosMsg> = vec![];
-    
+
     let mut interest_buffer = query_balance(
         deps.as_ref(),
         env.contract.address.clone(),
         config.stable_denom.to_string(),
     )?;
-
-   
 
     // Send accrued_buffer * config.anc_purchase_factor amount stable token to collector
     let accrued_buffer = interest_buffer - state.prev_interest_buffer;
@@ -514,7 +513,6 @@ pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<Response, Con
         let missing_deposits = prev_deposits * blocks * missing_deposit_rate;
         let distribution_buffer = interest_buffer * config.buffer_distribution_factor;
 
-       
         // When there was not enough deposits happens,
         // distribute interest to market contract
         distributed_interest = std::cmp::min(missing_deposits, distribution_buffer);
@@ -534,14 +532,13 @@ pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<Response, Con
             );
 
             // Send some portion of interest buffer to Market contract
-            messages.push(
-                CosmosMsg::Bank(BankMsg::Send {
+            messages.push(CosmosMsg::Bank(BankMsg::Send {
                 to_address: market_contract.to_string(),
                 amount: vec![Coin {
                     denom: config.stable_denom,
                     amount: distributed_interest.into(),
                 }],
-                }));
+            }));
         }
     }
 
@@ -629,7 +626,7 @@ pub fn update_epoch_state(
         threshold_deposit_rate: config.threshold_deposit_rate,
         distributed_interest,
     })?;
-   
+
     // proceed with deposit rate update
     update_deposit_rate(deps, env)?;
 
@@ -769,7 +766,6 @@ pub fn query_whitelist(
             }],
         })
     } else {
-        
         let start_after = if let Some(start_after) = start_after {
             Some(deps.api.addr_canonicalize(start_after.as_str())?)
         } else {

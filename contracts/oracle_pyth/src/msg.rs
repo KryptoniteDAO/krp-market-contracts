@@ -1,7 +1,7 @@
-use pyth_sdk_cw::PriceIdentifier;
 use cosmwasm_bignumber::Decimal256;
-use cosmwasm_schema::{cw_serde};
+use cosmwasm_schema::cw_serde;
 use cosmwasm_std::Addr;
+use pyth_sdk_cw::PriceIdentifier;
 
 #[cw_serde]
 pub struct InstantiateMsg {
@@ -76,14 +76,8 @@ pub enum ExecuteMsg {
 
 #[cw_serde]
 pub enum QueryMsg {
-    QueryPrice {
-        asset: String
-    },
-    QueryPrices {
-        assets: Vec<String>
-    },
+    QueryPrice { asset: String },
+    QueryPrices { assets: Vec<String> },
     QueryConfig {},
-    QueryPythFeederConfig {
-        asset: String,
-    },
+    QueryPythFeederConfig { asset: String },
 }

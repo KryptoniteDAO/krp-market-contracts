@@ -5,7 +5,7 @@ use cosmwasm_schema::{export_schema, remove_schemas, schema_for};
 
 use moneymarket::custody::{
     BorrowerResponse, BorrowersResponse, ConfigResponse, Cw20HookMsg, ExecuteMsg, InstantiateMsg,
-    QueryMsg,
+    MigrateMsg, QueryMsg,
 };
 
 fn main() {
@@ -16,8 +16,9 @@ fn main() {
 
     export_schema(&schema_for!(InstantiateMsg), &out_dir);
     export_schema(&schema_for!(ExecuteMsg), &out_dir);
-    export_schema(&schema_for!(Cw20HookMsg), &out_dir);
     export_schema(&schema_for!(QueryMsg), &out_dir);
+    export_schema(&schema_for!(MigrateMsg), &out_dir);
+    export_schema(&schema_for!(Cw20HookMsg), &out_dir);
     export_schema(&schema_for!(BorrowerResponse), &out_dir);
     export_schema(&schema_for!(BorrowersResponse), &out_dir);
     export_schema(&schema_for!(ConfigResponse), &out_dir);

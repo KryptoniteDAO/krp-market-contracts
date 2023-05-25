@@ -1,10 +1,10 @@
-use cosmwasm_std::{Deps, Env, StdError, StdResult};
-use pyth_sdk_cw::{Price, PriceFeedResponse, query_price_feed};
-use cosmwasm_bignumber::Decimal256;
 use crate::msg::{ConfigResponse, PriceResponse, PythFeederConfigResponse};
+use cosmwasm_bignumber::Decimal256;
+use cosmwasm_std::{Deps, Env, StdError, StdResult};
+use pyth_sdk_cw::{query_price_feed, Price, PriceFeedResponse};
 
 use crate::error::ContractError;
-use crate::state::{Config, PythFeederConfig, read_config, read_pyth_feeder_config};
+use crate::state::{read_config, read_pyth_feeder_config, Config, PythFeederConfig};
 use bigint::uint::U256;
 
 /**
@@ -22,7 +22,8 @@ pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
  * Query the feeder config of the asset
  */
 pub fn query_pyth_feeder_config(deps: Deps, asset: String) -> StdResult<PythFeederConfigResponse> {
-    let pyth_feeder_config: PythFeederConfig = read_pyth_feeder_config(deps.storage, asset.clone())?;
+    let pyth_feeder_config: PythFeederConfig =
+        read_pyth_feeder_config(deps.storage, asset.clone())?;
     Ok(PythFeederConfigResponse {
         price_feed_id: pyth_feeder_config.price_feed_id,
         price_feed_symbol: pyth_feeder_config.price_feed_symbol.to_string(),
@@ -39,7 +40,8 @@ pub fn query_pyth_feeder_config(deps: Deps, asset: String) -> StdResult<PythFeed
 pub fn query_price(deps: Deps, env: Env, asset: String) -> StdResult<PriceResponse> {
     let config: Config = read_config(deps.storage)?;
 
-    let pyth_feeder_config: PythFeederConfig = read_pyth_feeder_config(deps.storage, asset.clone())?;
+    let pyth_feeder_config: PythFeederConfig =
+        read_pyth_feeder_config(deps.storage, asset.clone())?;
 
     let pyth_contract = deps.api.addr_humanize(&config.pyth_contract)?;
 
@@ -48,7 +50,11 @@ pub fn query_price(deps: Deps, env: Env, asset: String) -> StdResult<PriceRespon
     // price feed. The result is a PriceFeed object with fields for the current price and other
     // useful information. The function will fail if the contract address or price feed id are
     // invalid.
-    let price_feed_response: PriceFeedResponse = query_price_feed(&deps.querier, pyth_contract, pyth_feeder_config.price_feed_id)?;
+    let price_feed_response: PriceFeedResponse = query_price_feed(
+        &deps.querier,
+        pyth_contract,
+        pyth_feeder_config.price_feed_id,
+    )?;
     let price_feed = price_feed_response.price_feed;
 
     // Get an exponentially-weighted moving average price and confidence interval.
@@ -57,26 +63,34 @@ pub fn query_price(deps: Deps, env: Env, asset: String) -> StdResult<PriceRespon
     let ema_price: Price;
     let current_price: Price;
     if pyth_feeder_config.check_feed_age {
-        ema_price = price_feed.get_ema_price_no_older_than(env.block.time.seconds() as i64, pyth_feeder_config.price_feed_age)
+        ema_price = price_feed
+            .get_ema_price_no_older_than(
+                env.block.time.seconds() as i64,
+                pyth_feeder_config.price_feed_age,
+            )
             .ok_or_else(|| ContractError::Std(StdError::not_found("EMA price is not available")))?;
-        current_price = price_feed.get_price_no_older_than(env.block.time.seconds() as i64, pyth_feeder_config.price_feed_age)
-            .ok_or_else(|| ContractError::Std(StdError::not_found("Current price is not available")))?;
+        current_price = price_feed
+            .get_price_no_older_than(
+                env.block.time.seconds() as i64,
+                pyth_feeder_config.price_feed_age,
+            )
+            .ok_or_else(|| {
+                ContractError::Std(StdError::not_found("Current price is not available"))
+            })?;
     } else {
         ema_price = price_feed.get_ema_price_unchecked();
         current_price = price_feed.get_price_unchecked();
     }
 
-
-
     let decimal: u32 = pyth_feeder_config.price_feed_decimal;
-    let decimal_places = Decimal256::from_ratio(
-        U256::from(1u64),
-        U256::from(10u64.pow(decimal as u32)),
-    );
+    let decimal_places =
+        Decimal256::from_ratio(U256::from(1u64), U256::from(10u64.pow(decimal as u32)));
     let evm_price_decimal = Decimal256::from_ratio(ema_price.price, 1) * decimal_places;
     let current_price_decimal = Decimal256::from_ratio(current_price.price, 1) * decimal_places;
 
-    let feed_time_u64: u64 = ema_price.publish_time.try_into()
+    let feed_time_u64: u64 = ema_price
+        .publish_time
+        .try_into()
         .map_err(|_| ContractError::Std(StdError::generic_err("Failed to convert i64 to u64")))?;
     Ok(PriceResponse {
         asset: asset.clone(),

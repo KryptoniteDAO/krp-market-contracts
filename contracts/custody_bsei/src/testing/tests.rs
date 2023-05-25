@@ -1,7 +1,7 @@
 use cosmwasm_bignumber::Uint256;
 use cosmwasm_std::{
-    attr, from_binary, to_binary, Api, Attribute, BankMsg, Coin, SubMsgResult, CosmosMsg,
-    Decimal, Reply, Response, SubMsg, SubMsgResponse, Uint128, WasmMsg,
+    attr, from_binary, to_binary, Api, Attribute, BankMsg, Coin, CosmosMsg, Decimal, Reply,
+    Response, SubMsg, SubMsgResponse, SubMsgResult, Uint128, WasmMsg,
 };
 
 use crate::contract::{
@@ -18,7 +18,6 @@ use moneymarket::custody::{
     BAssetInfo, BorrowerResponse, ConfigResponse, Cw20HookMsg, ExecuteMsg, InstantiateMsg, QueryMsg,
 };
 use moneymarket::liquidation::Cw20HookMsg as LiquidationCw20HookMsg;
-
 
 #[test]
 fn proper_initialization() {

@@ -2,7 +2,7 @@
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
     attr, from_binary, to_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo, Response,
-    StdResult, StdError,
+    StdError, StdResult,
 };
 
 use crate::collateral::{
@@ -17,7 +17,6 @@ use moneymarket::common::optional_addr_validate;
 use moneymarket::custody::{
     ConfigResponse, Cw20HookMsg, ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg,
 };
-
 
 pub const CLAIM_REWARDS_OPERATION: u64 = 1u64;
 pub const SWAP_TO_STABLE_OPERATION: u64 = 2u64;
@@ -75,7 +74,9 @@ pub fn execute(
             unlock_collateral(deps, info, borrower_addr, amount)
         }
         ExecuteMsg::DistributeRewards {} => Ok(Response::new()),
-        ExecuteMsg::WithdrawCollateral {borrower, amount } => withdraw_collateral(deps, borrower, amount),
+        ExecuteMsg::WithdrawCollateral { borrower, amount } => {
+            withdraw_collateral(deps, borrower, amount)
+        }
         ExecuteMsg::LiquidateCollateral {
             liquidator,
             borrower,
@@ -99,7 +100,10 @@ pub fn receive_cw20(
             // only asset contract can execute this message
             let config: Config = read_config(deps.storage)?;
             if deps.api.addr_canonicalize(contract_addr.as_str())? != config.collateral_token {
-                return Err(ContractError::Std(StdError::generic_err(format!("receive cw20 and depoist collateral Unauthorized {}", contract_addr.to_string()))));
+                return Err(ContractError::Std(StdError::generic_err(format!(
+                    "receive cw20 and depoist collateral Unauthorized {}",
+                    contract_addr.to_string()
+                ))));
             }
 
             let cw20_sender_addr = deps.api.addr_validate(&cw20_msg.sender)?;
@@ -107,7 +111,6 @@ pub fn receive_cw20(
         }
         _ => Err(ContractError::MissingDepositCollateralHook {}),
     }
-
 }
 
 pub fn update_config(

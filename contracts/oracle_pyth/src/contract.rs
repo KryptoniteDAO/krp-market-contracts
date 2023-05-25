@@ -1,10 +1,12 @@
-use cosmwasm_std::{Binary,entry_point, Deps, DepsMut, Env, MessageInfo, Response, StdResult, to_binary};
-use pyth_sdk_cw::PriceIdentifier;
-use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::error::ContractError;
 use crate::handler::{change_owner, config_feed_info, set_config_feed_valid};
+use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::querier::{query_config, query_price, query_prices, query_pyth_feeder_config};
-use crate::state::{Config, store_config};
+use crate::state::{store_config, Config};
+use cosmwasm_std::{
+    entry_point, to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult,
+};
+use pyth_sdk_cw::PriceIdentifier;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -30,14 +32,30 @@ pub fn execute(
     info: MessageInfo,
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
-
     match msg {
-        ExecuteMsg::ConfigFeedInfo { asset, price_feed_id, price_feed_symbol, price_feed_decimal,check_feed_age, price_feed_age }
-        => {
+        ExecuteMsg::ConfigFeedInfo {
+            asset,
+            price_feed_id,
+            price_feed_symbol,
+            price_feed_decimal,
+            check_feed_age,
+            price_feed_age,
+        } => {
             let price_feed_id_type = PriceIdentifier::from_hex(price_feed_id).unwrap();
-            config_feed_info(deps, info, asset, price_feed_id_type, price_feed_symbol, price_feed_decimal,check_feed_age, price_feed_age)
-        },
-        ExecuteMsg::SetConfigFeedValid { asset, valid } => set_config_feed_valid(deps, info, asset, valid),
+            config_feed_info(
+                deps,
+                info,
+                asset,
+                price_feed_id_type,
+                price_feed_symbol,
+                price_feed_decimal,
+                check_feed_age,
+                price_feed_age,
+            )
+        }
+        ExecuteMsg::SetConfigFeedValid { asset, valid } => {
+            set_config_feed_valid(deps, info, asset, valid)
+        }
         ExecuteMsg::ChangeOwner { new_owner } => change_owner(deps, info, new_owner),
     }
 }
@@ -48,7 +66,9 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::QueryPrice { asset } => to_binary(&query_price(deps, env, asset)?),
         QueryMsg::QueryPrices { assets } => to_binary(&query_prices(deps, env, assets)?),
         QueryMsg::QueryConfig {} => to_binary(&query_config(deps)?),
-        QueryMsg::QueryPythFeederConfig { asset } => to_binary(&query_pyth_feeder_config(deps, asset)?),
+        QueryMsg::QueryPythFeederConfig { asset } => {
+            to_binary(&query_pyth_feeder_config(deps, asset)?)
+        }
     }
 }
 

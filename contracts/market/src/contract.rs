@@ -2,9 +2,8 @@
 use cosmwasm_std::entry_point;
 
 use crate::borrow::{
-    compute_interest, compute_interest_raw, compute_reward, query_borrower_info,
-    query_borrower_infos, repay_stable_from_liquidation, repay_stable, borrow_stable,
-    claim_rewards
+    borrow_stable, claim_rewards, compute_interest, compute_interest_raw, compute_reward,
+    query_borrower_info, query_borrower_infos, repay_stable, repay_stable_from_liquidation,
 };
 use crate::deposit::{compute_exchange_rate_raw, deposit_stable, redeem_stable};
 use crate::error::ContractError;
@@ -38,7 +37,6 @@ pub fn instantiate(
     info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
-    
     let initial_deposit = info
         .funds
         .iter()
@@ -52,7 +50,7 @@ pub fn instantiate(
             msg.stable_denom,
         ));
     }
-   
+
     store_config(
         deps.storage,
         &Config {
@@ -81,43 +79,43 @@ pub fn instantiate(
             anc_emission_rate: msg.anc_emission_rate,
             prev_atoken_supply: Uint256::zero(),
             prev_exchange_rate: Decimal256::one(),
-        //     contract_balance: Uint256::zero(),
-        //     effective_deposit_rate: Decimal256::one(),
-        //     target_deposit_rate: Decimal256::zero(),
-         },
+            //     contract_balance: Uint256::zero(),
+            //     effective_deposit_rate: Decimal256::one(),
+            //     target_deposit_rate: Decimal256::zero(),
+        },
     )?;
-
 
     let mut messages: Vec<SubMsg> = vec![];
 
-    let inst_aust_msg:SubMsg = SubMsg::reply_on_success(CosmosMsg::Wasm(WasmMsg::Instantiate {
-        admin: None,
-        code_id: msg.atoken_code_id,
-        funds: vec![],
-        label: "Kryptonite stable coin share".to_string(),
-        msg: to_binary(&TokenInstantiateMsg {
-            //name: format!("Kryptonite stable coin share", msg.stable_denom[1..].to_uppercase()),
-            name: "Kryptonite stable coin share".to_string(),
-            // symbol: format!(
-            //     "a{}T",
-            //     msg.stable_denom[1..(msg.stable_denom.len() - 1)].to_uppercase()
-            // ),
-            symbol: "kUSD".to_string(),
-            decimals: 6u8,
-            initial_balances: vec![Cw20Coin {
-                address: env.contract.address.to_string(),
-                amount: Uint128::from(INITIAL_DEPOSIT_AMOUNT),
-            }],
-            mint: Some(MinterResponse {
-                minter: env.contract.address.to_string(),
-                cap: None,
-            }),
-        })?,
-    }),
-    1);
+    let inst_aust_msg: SubMsg = SubMsg::reply_on_success(
+        CosmosMsg::Wasm(WasmMsg::Instantiate {
+            admin: None,
+            code_id: msg.atoken_code_id,
+            funds: vec![],
+            label: "Kryptonite stable coin share".to_string(),
+            msg: to_binary(&TokenInstantiateMsg {
+                //name: format!("Kryptonite stable coin share", msg.stable_denom[1..].to_uppercase()),
+                name: "Kryptonite stable coin share".to_string(),
+                // symbol: format!(
+                //     "a{}T",
+                //     msg.stable_denom[1..(msg.stable_denom.len() - 1)].to_uppercase()
+                // ),
+                symbol: "kUSD".to_string(),
+                decimals: 6u8,
+                initial_balances: vec![Cw20Coin {
+                    address: env.contract.address.to_string(),
+                    amount: Uint128::from(INITIAL_DEPOSIT_AMOUNT),
+                }],
+                mint: Some(MinterResponse {
+                    minter: env.contract.address.to_string(),
+                    cap: None,
+                }),
+            })?,
+        }),
+        1,
+    );
     messages.push(inst_aust_msg);
 
-   
     Ok(Response::new().add_submessages(messages))
     /*
     Ok(
@@ -148,7 +146,6 @@ pub fn instantiate(
         )]),
     )
     */
-        
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -199,30 +196,25 @@ pub fn execute(
             target_deposit_rate,
             threshold_deposit_rate,
             distributed_interest,
-        } => {
-            execute_epoch_operations(
+        } => execute_epoch_operations(
+            deps,
+            env,
+            info,
+            deposit_rate,
+            target_deposit_rate,
+            threshold_deposit_rate,
+            distributed_interest,
+        ),
+        ExecuteMsg::DepositStable {} => deposit_stable(deps, env, info),
+        ExecuteMsg::BorrowStable { borrow_amount, to } => {
+            let api = deps.api;
+            borrow_stable(
                 deps,
                 env,
                 info,
-                deposit_rate,
-                target_deposit_rate,
-                threshold_deposit_rate,
-                distributed_interest
+                borrow_amount,
+                optional_addr_validate(api, to)?,
             )
-        }
-        ExecuteMsg::DepositStable {} =>  deposit_stable(deps, env, info),
-        ExecuteMsg::BorrowStable {
-            borrow_amount,
-            to,
-        } => {
-            let api = deps.api;
-            borrow_stable(
-                    deps, 
-                    env,
-                    info,
-                    borrow_amount,
-                    optional_addr_validate(api, to)?
-                )
         }
 
         ExecuteMsg::RepayStable {} => repay_stable(deps, env, info),
@@ -242,12 +234,7 @@ pub fn execute(
         }
         ExecuteMsg::ClaimRewards { to } => {
             let api = deps.api;
-            claim_rewards(
-                deps, 
-                env, 
-                info, 
-                optional_addr_validate(api, to)?
-            )
+            claim_rewards(deps, env, info, optional_addr_validate(api, to)?)
         }
     }
 }
@@ -293,14 +280,14 @@ pub fn receive_cw20(
             redeem_stable(deps, env, cw20_sender_addr, cw20_msg.amount)
         }
 
-        // Ok(Cw20HookMsg::DepositStable {}) => { 
-            
+        // Ok(Cw20HookMsg::DepositStable {}) => {
+
         //     let config: Config = read_config(deps.storage)?;
 
         //     let cw20_sender_addr = deps.api.addr_validate(&cw20_msg.sender)?;
-            
+
         //     deposit_stable(deps, env,cw20_sender_addr, Uint256::from(cw20_msg.amount))
-            
+
         // }
 
         // Ok(Cw20HookMsg::RepayStable {}) => {
@@ -308,7 +295,6 @@ pub fn receive_cw20(
 
         //     repay_stable(deps, env, cw20_sender_addr, Uint256::from(cw20_msg.amount))
         // }
-
         _ => Err(ContractError::MissingRedeemStableHook {}),
     }
 }
@@ -348,7 +334,7 @@ pub fn register_contracts(
     config.distribution_model = deps.api.addr_canonicalize(distribution_model.as_str())?;
     config.collector_contract = deps.api.addr_canonicalize(collector_contract.as_str())?;
     config.distributor_contract = deps.api.addr_canonicalize(distributor_contract.as_str())?;
-    
+
     store_config(deps.storage, &config)?;
 
     Ok(Response::default())
@@ -387,7 +373,7 @@ pub fn update_config(
     if let Some(distribution_model) = distribution_model {
         config.distribution_model = deps.api.addr_canonicalize(distribution_model.as_str())?;
     }
-       
+
     if let Some(max_borrow_factor) = max_borrow_factor {
         config.max_borrow_factor = max_borrow_factor;
     }
@@ -455,14 +441,14 @@ pub fn execute_epoch_operations(
         state.total_reserves = state.total_reserves - Decimal256::from_uint256(total_reserves);
 
         // vec![
-        //     CosmosMsg::Wasm(WasmMsg::Execute { 
+        //     CosmosMsg::Wasm(WasmMsg::Execute {
         //         contract_addr: deps.api.addr_humanize(&config.stable_contract)?.to_string(),
         //         funds : vec![],
         //         msg: to_binary(&Cw20ExecuteMsg::Transfer {
         //             recipient: deps.api
         //                  .addr_humanize(&config.collector_contract)?
-        //                  .to_string(), 
-        //             amount: total_reserves.into(), 
+        //                  .to_string(),
+        //             amount: total_reserves.into(),
         //             })?
         //         }
         //     )
@@ -605,7 +591,7 @@ pub fn query_epoch_state(
 
     let distributed_interest = distributed_interest.unwrap_or_else(Uint256::zero);
     let atoken_supply = query_supply(deps, deps.api.addr_humanize(&config.atoken_contract)?)?;
-   
+
     let balance = query_balance(
         deps,
         deps.api.addr_humanize(&config.contract_addr)?,

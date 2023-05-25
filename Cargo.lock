@@ -597,7 +597,7 @@ dependencies = [
 
 [[package]]
 name = "moneymarket-custody-base"
-version = "0.0.0"
+version = "0.0.1"
 dependencies = [
  "cosmwasm-bignumber",
  "cosmwasm-schema",
@@ -642,7 +642,7 @@ dependencies = [
 
 [[package]]
 name = "moneymarket-interest-model"
-version = "0.0.0"
+version = "0.0.1"
 dependencies = [
  "cosmwasm-bignumber",
  "cosmwasm-schema",
@@ -656,7 +656,7 @@ dependencies = [
 
 [[package]]
 name = "moneymarket-liquidation-queue"
-version = "0.0.0"
+version = "0.0.1"
 dependencies = [
  "bigint",
  "cosmwasm-bignumber",
@@ -673,7 +673,7 @@ dependencies = [
 
 [[package]]
 name = "moneymarket-market"
-version = "0.0.0"
+version = "0.0.1"
 dependencies = [
  "cosmwasm-bignumber",
  "cosmwasm-schema",
@@ -704,7 +704,7 @@ dependencies = [
 
 [[package]]
 name = "moneymarket-oracle-pyth"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "bigint",
  "cosmwasm-bignumber",
@@ -722,7 +722,6 @@ dependencies = [
 name = "moneymarket-overseer"
 version = "0.0.1"
 dependencies = [
- "astroport",
  "cosmwasm-bignumber",
  "cosmwasm-schema",
  "cosmwasm-std",

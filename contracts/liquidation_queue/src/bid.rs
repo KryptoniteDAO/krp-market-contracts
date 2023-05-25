@@ -16,7 +16,6 @@ use cw20::Cw20ExecuteMsg;
 use moneymarket::oracle::PriceResponse;
 use moneymarket::querier::{deduct_tax, query_price, TimeConstraints};
 
-
 /// Stable asset is submitted to create a bid record. If available bids for the collateral is under
 /// the threshold, the bid is activated. Bids are not used for liquidations until activated
 pub fn submit_bid(
@@ -135,7 +134,9 @@ pub fn activate_bids(
             return Err(ContractError::Std(StdError::generic_err("unauthorized")));
         }
         if bid.collateral_token != collateral_token_raw {
-            return Err(ContractError::Std(StdError::generic_err("Bid collateral token doesn't match")));
+            return Err(ContractError::Std(StdError::generic_err(
+                "Bid collateral token doesn't match",
+            )));
         }
         let mut bid_pool: BidPool =
             read_bid_pool(deps.storage, &bid.collateral_token, bid.premium_slot)?;
@@ -186,7 +187,7 @@ pub fn retract_bid(
     info: MessageInfo,
     bid_idx: Uint128,
     amount: Option<Uint256>,
-) ->  Result<Response, ContractError>  {
+) -> Result<Response, ContractError> {
     let config: Config = read_config(deps.storage)?;
     let sender_raw: CanonicalAddr = deps.api.addr_canonicalize(info.sender.as_str())?;
     let mut bid: Bid = read_bid(deps.storage, bid_idx)?;
@@ -388,10 +389,8 @@ pub fn execute_liquidation(
     //      format!("execute liquidations transger transfer repay_amount:{}; bid_fee:{};liquidator_fee:{}",
     //      repay_address, fee_address, liquidator)
     //  )));
-    
 
-    let mut messages: Vec<CosmosMsg> = vec![
-        CosmosMsg::Bank(BankMsg::Send {
+    let mut messages: Vec<CosmosMsg> = vec![CosmosMsg::Bank(BankMsg::Send {
         to_address: repay_address,
         amount: vec![deduct_tax(
             deps.as_ref(),
@@ -400,12 +399,10 @@ pub fn execute_liquidation(
                 amount: repay_amount.into(),
             },
         )?],
-    })
-    ];
-    
+    })];
+
     if bid_fee.is_zero() {
-        messages.push(
-            CosmosMsg::Bank(BankMsg::Send {
+        messages.push(CosmosMsg::Bank(BankMsg::Send {
             to_address: fee_address,
             amount: vec![deduct_tax(
                 deps.as_ref(),
@@ -414,12 +411,10 @@ pub fn execute_liquidation(
                     amount: bid_fee.into(),
                 },
             )?],
-        })
-    );
+        }));
     }
     if liquidator_fee.is_zero() {
-        messages.push(
-            CosmosMsg::Bank(BankMsg::Send {
+        messages.push(CosmosMsg::Bank(BankMsg::Send {
             to_address: liquidator,
             amount: vec![deduct_tax(
                 deps.as_ref(),
@@ -428,17 +423,14 @@ pub fn execute_liquidation(
                     amount: liquidator_fee.into(),
                 },
             )?],
-        })
-    );
+        }));
     }
-//    return Err(ContractError::Std(StdError::generic_err(
-//          format!("execute liquidations transger transfer repay_amount:{}; bid_fee:{};liquidator_fee:{}",
-//          repay_amount, bid_fee, liquidator_fee)
-//      )));
+    //    return Err(ContractError::Std(StdError::generic_err(
+    //          format!("execute liquidations transger transfer repay_amount:{}; bid_fee:{};liquidator_fee:{}",
+    //          repay_amount, bid_fee, liquidator_fee)
+    //      )));
 
-    Ok(Response::new()
-        .add_messages(messages)
-        .add_attributes(vec![
+    Ok(Response::new().add_messages(messages).add_attributes(vec![
         attr("action", "execute_bid"),
         attr("stable_denom", config.stable_denom),
         attr("repay_amount", repay_amount),
@@ -476,7 +468,9 @@ pub fn claim_liquidations(
             return Err(ContractError::Std(StdError::generic_err("unauthorized")));
         }
         if bid.collateral_token != collateral_token_raw {
-            return Err(ContractError::Std(StdError::generic_err("Bid collateral token doesn't match")));
+            return Err(ContractError::Std(StdError::generic_err(
+                "Bid collateral token doesn't match",
+            )));
         }
         if bid.wait_end.is_some() {
             // bid not activated

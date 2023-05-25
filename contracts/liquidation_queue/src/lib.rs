@@ -1,10 +1,10 @@
 mod asserts;
 mod bid;
 pub mod contract;
+pub mod error;
 mod querier;
 mod query;
 mod state;
-pub mod error;
 
 #[cfg(test)]
 mod testing;

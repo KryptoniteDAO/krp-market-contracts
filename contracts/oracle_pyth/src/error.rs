@@ -14,5 +14,4 @@ pub enum ContractError {
 
     #[error("InvalidInput")]
     InvalidInput {},
-
 }

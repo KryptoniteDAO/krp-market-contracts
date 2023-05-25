@@ -4,9 +4,8 @@ use serde::{Deserialize, Serialize};
 use cosmwasm_std::{CanonicalAddr, StdError, StdResult, Storage};
 use cosmwasm_storage::{singleton, singleton_read};
 
-use cw_storage_plus::{Map};
+use cw_storage_plus::Map;
 use pyth_sdk_cw::PriceIdentifier;
-
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct PythFeederConfig {
@@ -36,14 +35,21 @@ pub fn read_config(storage: &dyn Storage) -> StdResult<Config> {
     singleton_read(storage, KEY_CONFIG).load()
 }
 
-pub fn store_pyth_feeder_config(storage: &mut dyn Storage, asset: String, pyth_feeder_config: &PythFeederConfig) -> Result<PythFeederConfig, StdError> {
+pub fn store_pyth_feeder_config(
+    storage: &mut dyn Storage,
+    asset: String,
+    pyth_feeder_config: &PythFeederConfig,
+) -> Result<PythFeederConfig, StdError> {
     PYTH_FEEDER_CONFIG.update(storage, asset, |old| match old {
         Some(_) => Ok(pyth_feeder_config.clone()),
         None => Ok(pyth_feeder_config.clone()),
     })
 }
 
-pub fn read_pyth_feeder_config(storage: &dyn Storage, asset: String) -> Result<PythFeederConfig, StdError> {
+pub fn read_pyth_feeder_config(
+    storage: &dyn Storage,
+    asset: String,
+) -> Result<PythFeederConfig, StdError> {
     let pyth_feeder_config = PYTH_FEEDER_CONFIG
         .may_load(storage, asset)?
         .ok_or_else(|| StdError::generic_err("Pyth feeder config not found"));

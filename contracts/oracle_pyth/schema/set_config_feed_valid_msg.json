@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SetConfigFeedValidMsg",
+  "type": "object",
+  "required": [
+    "asset_address",
+    "valid"
+  ],
+  "properties": {
+    "asset_address": {
+      "type": "string"
+    },
+    "valid": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": false
+}

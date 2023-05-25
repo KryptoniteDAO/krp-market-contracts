@@ -86,7 +86,7 @@ pub enum ExecuteMsg {
         fee_address: String,
         collateral_denom: String,
         amount: Uint256,
-    }
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -98,7 +98,6 @@ pub enum Cw20HookMsg {
         fee_address: Option<String>,
         repay_address: Option<String>,
     },
-
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

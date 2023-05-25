@@ -63,10 +63,9 @@ pub enum ExecuteMsg {
     /// If the amount is not given,
     /// return all spendable collateral
     WithdrawCollateral {
-        borrower: String, 
-        amount: Option<Uint256> 
+        borrower: String,
+        amount: Option<Uint256>,
     },
-
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

@@ -1,6 +1,6 @@
 use crate::xastro_token::InstantiateMarketingInfo;
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Addr};
+use cosmwasm_std::Addr;
 use cw20::Cw20ReceiveMsg;
 
 /// This structure describes the parameters used for creating a contract.

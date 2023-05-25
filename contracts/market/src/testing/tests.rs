@@ -7,7 +7,10 @@ use crate::testing::mock_querier::mock_dependencies;
 
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::testing::{mock_env, mock_info, MOCK_CONTRACT_ADDR};
-use cosmwasm_std::{attr, from_binary, to_binary, Addr, BankMsg, Coin, CosmosMsg, Decimal, Reply, SubMsg, SubMsgResponse, Uint128, WasmMsg, SubMsgResult};
+use cosmwasm_std::{
+    attr, from_binary, to_binary, Addr, BankMsg, Coin, CosmosMsg, Decimal, Reply, SubMsg,
+    SubMsgResponse, SubMsgResult, Uint128, WasmMsg,
+};
 use cw20::{Cw20Coin, Cw20ExecuteMsg, Cw20ReceiveMsg, MinterResponse};
 use moneymarket::market::{
     BorrowerInfoResponse, ConfigResponse, Cw20HookMsg, ExecuteMsg, InstantiateMsg, QueryMsg,

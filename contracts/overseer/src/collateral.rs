@@ -1,22 +1,22 @@
-
-
-use cosmwasm_bignumber::{Decimal256, Uint256};
-use cosmwasm_std::{
-    attr, to_binary, Addr, BankMsg, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response,
-    StdResult, SubMsg, WasmMsg, StdError,
-};
 use crate::error::ContractError;
 use crate::querier::{query_borrower_info, query_liquidation_amount};
 use crate::state::{
-    read_all_collaterals, read_collaterals, read_config, read_whitelist_elem,read_whitelist, store_collaterals,
-    Config, WhitelistElem,
+    read_all_collaterals, read_collaterals, read_config, read_whitelist, read_whitelist_elem,
+    store_collaterals, Config, WhitelistElem,
+};
+use cosmwasm_bignumber::{Decimal256, Uint256};
+use cosmwasm_std::{
+    attr, to_binary, Addr, BankMsg, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response,
+    StdError, StdResult, SubMsg, WasmMsg,
 };
 
 use moneymarket::custody::ExecuteMsg as CustodyExecuteMsg;
 use moneymarket::liquidation::LiquidationAmountResponse;
 use moneymarket::market::{BorrowerInfoResponse, ExecuteMsg as MarketExecuteMsg};
 use moneymarket::oracle::PriceResponse;
-use moneymarket::overseer::{AllCollateralsResponse, BorrowLimitResponse, CollateralsResponse, WhitelistResponseElem};
+use moneymarket::overseer::{
+    AllCollateralsResponse, BorrowLimitResponse, CollateralsResponse, WhitelistResponseElem,
+};
 use moneymarket::querier::{query_balance, query_price, TimeConstraints};
 use moneymarket::tokens::{Tokens, TokensHuman, TokensMath, TokensToHuman, TokensToRaw};
 
@@ -26,20 +26,21 @@ pub fn lock_collateral(
     borrower: String,
     collaterals_human: TokensHuman,
 ) -> Result<Response, ContractError> {
-    
     let whitelist: Vec<WhitelistResponseElem> = read_whitelist(deps.as_ref(), None, None)?;
-    
+
     let mut is_white_custody = false;
     for elem in whitelist.iter() {
-        if info.sender.to_string() == elem.custody_contract.clone() {    
+        if info.sender.to_string() == elem.custody_contract.clone() {
             is_white_custody = true;
             break;
         }
     }
     if false == is_white_custody {
-        return Err(ContractError::Std(StdError::generic_err(format!("sender {} lock collateral Unauthorized", info.sender.to_string()))));
+        return Err(ContractError::Std(StdError::generic_err(format!(
+            "sender {} lock collateral Unauthorized",
+            info.sender.to_string()
+        ))));
     }
-    
 
     let borrower_raw = deps.api.addr_canonicalize(borrower.as_str())?;
     let mut cur_collaterals: Tokens = read_collaterals(deps.storage, &borrower_raw);
@@ -126,11 +127,11 @@ pub fn unlock_collateral(
             })?,
         })));
 
-        messages.push(SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute { 
+        messages.push(SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: deps
-            .api
-            .addr_humanize(&whitelist_elem.custody_contract)?
-            .to_string(),
+                .api
+                .addr_humanize(&whitelist_elem.custody_contract)?
+                .to_string(),
             funds: vec![],
             msg: to_binary(&CustodyExecuteMsg::WithdrawCollateral {
                 borrower: borrower.to_string(),
@@ -172,11 +173,11 @@ pub fn liquidate_collateral(
         &cur_collaterals,
         Some(env.block.time.seconds()),
     )?;
-  
+
     let borrow_amount_res: BorrowerInfoResponse =
         query_borrower_info(deps.as_ref(), market, borrower.clone(), env.block.height)?;
     let borrow_amount = borrow_amount_res.loan_amount;
-    
+
     // borrow limit is equal or bigger than loan amount
     // cannot liquidation collaterals
     if borrow_limit >= borrow_amount {
@@ -199,10 +200,9 @@ pub fn liquidate_collateral(
     store_collaterals(deps.storage, &borrower_raw, &cur_collaterals)?;
 
     let market_contract = deps.api.addr_humanize(&config.market_contract)?;
-    let prev_balance: Uint256 = 
+    let prev_balance: Uint256 =
         query_balance(deps.as_ref(), market_contract.clone(), config.stable_denom)?;
- 
-    
+
     let liquidation_messages: Vec<CosmosMsg> = liquidation_amount
         .iter()
         .map(|collateral| {

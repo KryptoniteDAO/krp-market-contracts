@@ -1,6 +1,7 @@
 use crate::contract::{execute, instantiate, query};
 use crate::testing::mock_querier::mock_dependencies;
 
+use crate::error::ContractError;
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::testing::{mock_env, mock_info};
 use cosmwasm_std::{attr, from_binary, to_binary, Coin, Decimal, StdError, Uint128};
@@ -8,7 +9,6 @@ use cw20::Cw20ReceiveMsg;
 use moneymarket::liquidation_queue::{
     BidPoolResponse, BidResponse, Cw20HookMsg, ExecuteMsg, InstantiateMsg, QueryMsg,
 };
-use crate::error::ContractError;
 
 #[test]
 fn one_bidder_distribution() {
@@ -280,7 +280,9 @@ fn two_bidder_distribution() {
     let res = execute(deps.as_mut(), mock_env(), info, msg).unwrap_err();
     assert_eq!(
         res,
-        ContractError::Std(StdError::generic_err("No bids with the specified information exist"))
+        ContractError::Std(StdError::generic_err(
+            "No bids with the specified information exist"
+        ))
     );
 
     // BOB:
@@ -307,7 +309,9 @@ fn two_bidder_distribution() {
     let res = execute(deps.as_mut(), mock_env(), info, msg).unwrap_err();
     assert_eq!(
         res,
-        ContractError::Std(StdError::generic_err("No bids with the specified information exist"))
+        ContractError::Std(StdError::generic_err(
+            "No bids with the specified information exist"
+        ))
     );
 }
 
@@ -466,7 +470,9 @@ fn two_bidder_distribution_big_numbers() {
     let res = execute(deps.as_mut(), mock_env(), info, msg).unwrap_err();
     assert_eq!(
         res,
-        ContractError::Std(StdError::generic_err("No bids with the specified information exist"))
+        ContractError::Std(StdError::generic_err(
+            "No bids with the specified information exist"
+        ))
     );
 
     // BOB:
@@ -493,7 +499,9 @@ fn two_bidder_distribution_big_numbers() {
     let res = execute(deps.as_mut(), mock_env(), info, msg).unwrap_err();
     assert_eq!(
         res,
-        ContractError::Std(StdError::generic_err("No bids with the specified information exist"))
+        ContractError::Std(StdError::generic_err(
+            "No bids with the specified information exist"
+        ))
     );
 }
 
@@ -824,7 +832,9 @@ fn partial_withdraw_after_execution() {
     let res = execute(deps.as_mut(), mock_env(), info, msg).unwrap_err();
     assert_eq!(
         res,
-        ContractError::Std(StdError::generic_err("No bids with the specified information exist"))
+        ContractError::Std(StdError::generic_err(
+            "No bids with the specified information exist"
+        ))
     );
 
     // BOB:
@@ -860,7 +870,9 @@ fn partial_withdraw_after_execution() {
     let res = execute(deps.as_mut(), mock_env(), info, msg).unwrap_err();
     assert_eq!(
         res,
-        ContractError::Std(StdError::generic_err("No bids with the specified information exist"))
+        ContractError::Std(StdError::generic_err(
+            "No bids with the specified information exist"
+        ))
     );
 }
 
@@ -2205,7 +2217,9 @@ fn not_enough_bid_for_collateral() {
     let res = execute(deps.as_mut(), mock_env(), info, msg).unwrap_err();
     assert_eq!(
         res,
-        ContractError::Std(StdError::generic_err("Not enough bids to execute this liquidation"))
+        ContractError::Std(StdError::generic_err(
+            "Not enough bids to execute this liquidation"
+        ))
     )
 }
 

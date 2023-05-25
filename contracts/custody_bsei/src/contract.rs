@@ -75,7 +75,9 @@ pub fn execute(
             unlock_collateral(deps, info, borrower_addr, amount)
         }
         ExecuteMsg::DistributeRewards {} => distribute_rewards(deps, env, info),
-        ExecuteMsg::WithdrawCollateral { borrower, amount } => withdraw_collateral(deps, borrower, amount),
+        ExecuteMsg::WithdrawCollateral { borrower, amount } => {
+            withdraw_collateral(deps, borrower, amount)
+        }
         ExecuteMsg::LiquidateCollateral {
             liquidator,
             borrower,
@@ -89,11 +91,7 @@ pub fn execute(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn reply(
-    deps: DepsMut,
-    env: Env,
-    msg: Reply,
-) -> Result<Response, ContractError> {
+pub fn reply(deps: DepsMut, env: Env, msg: Reply) -> Result<Response, ContractError> {
     match msg.id {
         // ClaimRewards callback
         CLAIM_REWARDS_OPERATION => swap_to_stable_denom(deps, env),
