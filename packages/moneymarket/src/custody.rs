@@ -23,6 +23,8 @@ pub struct InstantiateMsg {
     /// it, we try to convert the reward to the `stable_denom`.
     pub stable_denom: String,
     pub basset_info: BAssetInfo,
+    pub swap_contract: String,
+    pub swap_denoms: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -64,7 +66,7 @@ pub enum ExecuteMsg {
     /// return all spendable collateral
     WithdrawCollateral {
         borrower: String,
-        amount: Option<Uint256>,
+        amount: Option<Uint256>
     },
 }
 

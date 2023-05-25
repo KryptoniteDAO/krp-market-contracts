@@ -40,6 +40,7 @@ pub struct PythFeederConfigResponse {
     pub check_feed_age: bool,
     pub is_valid: bool,
 }
+
 #[cw_serde]
 pub struct ConfigResponse {
     pub owner: String,
@@ -58,6 +59,7 @@ pub struct ConfigFeedInfoParams {
 pub enum ExecuteMsg {
     ConfigFeedInfo {
         asset: String,
+        asset_label: String,
         price_feed_id: String,
         price_feed_symbol: String,
         price_feed_decimal: u32,
@@ -80,4 +82,5 @@ pub enum QueryMsg {
     QueryPrices { assets: Vec<String> },
     QueryConfig {},
     QueryPythFeederConfig { asset: String },
+    QueryExchangeRateByAssetLabel { base_label: String, quote_label: String },
 }

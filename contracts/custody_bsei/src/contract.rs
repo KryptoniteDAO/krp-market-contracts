@@ -38,6 +38,8 @@ pub fn instantiate(
         liquidation_contract: deps.api.addr_canonicalize(&msg.liquidation_contract)?,
         stable_denom: msg.stable_denom,
         basset_info: msg.basset_info,
+        swap_contract: deps.api.addr_canonicalize(&msg.swap_contract)?,
+        swap_denoms: msg.swap_denoms,
     };
 
     store_config(deps.storage, &config)?;

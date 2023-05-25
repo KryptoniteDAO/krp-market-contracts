@@ -11,14 +11,14 @@ use cosmwasm_std::{
     Coin,
     Deps,
     QueryRequest,
-    StdError,
     StdResult,
     Uint128,
     WasmQuery, //QuerierWrapper,
 };
 use cw20::{BalanceResponse as Cw20BalanceResponse, Cw20QueryMsg, TokenInfoResponse};
 
-use crate::oracle::{PriceResponse, QueryMsg as OracleQueryMsg};
+use crate::oracle::{PriceResponse};
+use crate::oracle_pyth::{PriceResponse as PythPriceResponse,QueryMsg as PythOracleQueryMsg};
 
 pub fn query_all_balances(deps: Deps, account_addr: Addr) -> StdResult<Vec<Coin>> {
     // load price form the oracle
@@ -153,28 +153,42 @@ pub fn query_price(
     deps: Deps,
     oracle_addr: Addr,
     base: String,
-    quote: String,
-    time_constraints: Option<TimeConstraints>,
+    _quote: String,
+    _time_constraints: Option<TimeConstraints>,
 ) -> StdResult<PriceResponse> {
-    let oracle_price: PriceResponse =
+    // The time check has been set here
+    let pyth_oracle_price: PythPriceResponse =
         deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
             contract_addr: oracle_addr.to_string(),
-            msg: to_binary(&OracleQueryMsg::Price { base, quote })?,
+            msg: to_binary(&PythOracleQueryMsg::QueryPrice { asset: base })?,
         }))?;
 
-    if let Some(time_constraints) = time_constraints {
-        let valid_update_time = time_constraints.block_time - time_constraints.valid_timeframe;
-        if oracle_price.last_updated_base < valid_update_time
-            || oracle_price.last_updated_quote < valid_update_time
-        {
-            let error_msg = format!(" Price is too old;time_constraints.block_time:{}, time_constraints.valid_timeframe:{},
-            oracle_price.last_updated_base: {}, valid_update_time: {}, oracle_price.last_updated_quote: {}",
-                                    time_constraints.block_time, time_constraints.valid_timeframe, oracle_price.last_updated_base,
-                                    valid_update_time, oracle_price.last_updated_quote);
+    let oracle_price = PriceResponse {
+        rate: pyth_oracle_price.emv_price,
+        last_updated_base: pyth_oracle_price.last_updated_base,
+        last_updated_quote: pyth_oracle_price.last_updated_quote,
+    };
 
-            return Err(StdError::generic_err(error_msg));
-        }
-    }
+    // let oracle_price: PriceResponse =
+    //     deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+    //         contract_addr: oracle_addr.to_string(),
+    //         msg: to_binary(&OracleQueryMsg::Price { base, quote })?,
+    //     }))?;
+    //
+    //
+    // if let Some(time_constraints) = time_constraints {
+    //     let valid_update_time = time_constraints.block_time - time_constraints.valid_timeframe;
+    //     if oracle_price.last_updated_base < valid_update_time
+    //         || oracle_price.last_updated_quote < valid_update_time
+    //     {
+    //         let error_msg = format!(" Price is too old;time_constraints.block_time:{}, time_constraints.valid_timeframe:{},
+    //         oracle_price.last_updated_base: {}, valid_update_time: {}, oracle_price.last_updated_quote: {}",
+    //                                 time_constraints.block_time, time_constraints.valid_timeframe, oracle_price.last_updated_base,
+    //                                 valid_update_time, oracle_price.last_updated_quote);
+    //
+    //         return Err(StdError::generic_err(error_msg));
+    //     }
+    // }
 
     Ok(oracle_price)
 }

@@ -25,6 +25,8 @@ pub struct Config {
     pub liquidation_contract: CanonicalAddr,
     pub stable_denom: String,
     pub basset_info: BAssetInfo,
+    pub swap_contract: CanonicalAddr,
+    pub swap_denoms: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

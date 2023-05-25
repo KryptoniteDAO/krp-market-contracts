@@ -1,10 +1,11 @@
+use std::ops::Div;
 use crate::msg::{ConfigResponse, PriceResponse, PythFeederConfigResponse};
 use cosmwasm_bignumber::Decimal256;
 use cosmwasm_std::{Deps, Env, StdError, StdResult};
 use pyth_sdk_cw::{query_price_feed, Price, PriceFeedResponse};
 
 use crate::error::ContractError;
-use crate::state::{read_config, read_pyth_feeder_config, Config, PythFeederConfig};
+use crate::state::{read_config, read_pyth_feeder_config, Config, PythFeederConfig, read_denom_ref_asset};
 use bigint::uint::U256;
 
 /**
@@ -112,6 +113,14 @@ pub fn query_prices(deps: Deps, env: Env, assets: Vec<String>) -> StdResult<Vec<
         prices.push(price);
     }
     Ok(prices)
+}
+
+pub fn query_exchange_rate_by_asset_label(deps: Deps, env: Env,base_label:String,quote_label:String) -> StdResult<Decimal256> {
+    let base_asset = read_denom_ref_asset(deps.storage, base_label)?;
+    let quote_asset = read_denom_ref_asset(deps.storage, quote_label)?;
+    let base_price = query_price(deps.clone(), env.clone(), base_asset)?;
+    let quote_price = query_price(deps.clone(), env.clone(), quote_asset)?;
+    Ok(base_price.emv_price.div(quote_price.emv_price))
 }
 
 impl From<ContractError> for StdError {

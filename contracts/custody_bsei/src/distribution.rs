@@ -1,15 +1,13 @@
 use cosmwasm_bignumber::Uint256;
-use cosmwasm_std::{
-    attr, to_binary, Addr, BankMsg, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, QueryRequest,
-    /*ReplyOn,*/ Response, StdResult, SubMsg, Uint128, WasmMsg, WasmQuery,
-};
+use cosmwasm_std::{attr, to_binary, Addr, BankMsg, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, QueryRequest, Response, StdResult, SubMsg, Uint128, WasmMsg, WasmQuery, ReplyOn};
 
-use crate::contract::CLAIM_REWARDS_OPERATION;
+use crate::contract::{CLAIM_REWARDS_OPERATION, SWAP_TO_STABLE_OPERATION};
 use crate::error::ContractError;
 use crate::external::handle::{RewardContractExecuteMsg, RewardContractQueryMsg};
 use crate::state::{read_config, BSeiAccruedRewardsResponse, Config};
 
 use moneymarket::querier::{deduct_tax, query_balance};
+use moneymarket::swap_ext::SwapExecteMsg;
 //use sei_cosmwasm::{create_swap_msg, Response};
 
 // REWARD_THRESHOLD
@@ -54,7 +52,10 @@ pub fn distribute_rewards(
 
 /// Apply swapped reward to global index
 /// Executor: itself
-pub fn distribute_hook(deps: DepsMut, env: Env) -> Result<Response, ContractError> {
+pub fn distribute_hook(
+    deps: DepsMut,
+    env: Env,
+) -> Result<Response, ContractError> {
     let contract_addr = env.contract.address;
     let config: Config = read_config(deps.storage)?;
     let overseer_contract = deps.api.addr_humanize(&config.overseer_contract)?;
@@ -90,10 +91,39 @@ pub fn distribute_hook(deps: DepsMut, env: Env) -> Result<Response, ContractErro
 /// Swap all coins to stable_denom
 /// and execute `swap_hook`
 /// Executor: itself
-pub fn swap_to_stable_denom(deps: DepsMut, env: Env) -> Result<Response, ContractError> {
-    let _config: Config = read_config(deps.storage)?;
+pub fn swap_to_stable_denom(
+    deps: DepsMut,
+    env: Env,
+) -> Result<Response, ContractError> {
+    let config: Config = read_config(deps.storage)?;
 
-    let _contract_addr = env.contract.address.clone();
+    let contract_addr = env.contract.address.clone();
+
+    // --------------------- add swap start --------------------------
+    let balances = deps.querier.query_all_balances(contract_addr)?;
+    let swap_denoms = config.swap_denoms.clone();
+    let reward_denom = config.stable_denom.clone();
+    let swap_addr = deps.api.addr_humanize(&config.swap_contract)?;
+
+    let mut messages: Vec<SubMsg> = Vec::new();
+    for coin in balances {
+        if !swap_denoms.contains(&coin.denom) {
+            continue;
+        }
+        if coin.amount > Uint128::zero() {
+            let swap_msg = SwapExecteMsg::SwapDenom {
+                from_coin: coin.clone(),
+                target_denom: reward_denom.clone(),
+            };
+            messages.push(SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
+                contract_addr: swap_addr.clone().to_string(),
+                msg: to_binary(&swap_msg)?,
+                funds: vec![coin.clone()],
+            })));
+        }
+    }
+    // --------------------- add swap end --------------------------
+
     // let balances: Vec<Coin> = query_all_balances(deps.as_ref(), contract_addr)?;
     // let mut messages: Vec<SubMsg<Response>> = balances
     //     .iter()
@@ -101,15 +131,16 @@ pub fn swap_to_stable_denom(deps: DepsMut, env: Env) -> Result<Response, Contrac
     //     .map(|coin: &Coin| SubMsg::new(create_swap_msg(coin.clone(), config.stable_denom.clone())))
     //     .collect();
 
-    // if let Some(last) = messages.last_mut() {
-    //     last.id = SWAP_TO_STABLE_OPERATION;
-    //     last.reply_on = ReplyOn::Success;
-    // } else {
-    //     return distribute_hook(deps, env);
-    // }
+    if let Some(last) = messages.last_mut() {
+        last.id = SWAP_TO_STABLE_OPERATION;
+        last.reply_on = ReplyOn::Success;
+    } else {
+        return distribute_hook(deps, env);
+    }
 
-    //Ok(Response::new().add_submessages(messages))
-    Ok(Response::new().add_attribute("action", "swap_to_stable_denom"))
+    Ok(Response::new()
+        .add_submessages(messages)
+        .add_attribute("action", "swap_to_stable_denom"))
 }
 
 pub(crate) fn get_accrued_rewards(

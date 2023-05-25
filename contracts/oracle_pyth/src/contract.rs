@@ -1,7 +1,7 @@
 use crate::error::ContractError;
 use crate::handler::{change_owner, config_feed_info, set_config_feed_valid};
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
-use crate::querier::{query_config, query_price, query_prices, query_pyth_feeder_config};
+use crate::querier::{query_config, query_exchange_rate_by_asset_label, query_price, query_prices, query_pyth_feeder_config};
 use crate::state::{store_config, Config};
 use cosmwasm_std::{
     entry_point, to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult,
@@ -35,6 +35,7 @@ pub fn execute(
     match msg {
         ExecuteMsg::ConfigFeedInfo {
             asset,
+            asset_label,
             price_feed_id,
             price_feed_symbol,
             price_feed_decimal,
@@ -46,6 +47,7 @@ pub fn execute(
                 deps,
                 info,
                 asset,
+                asset_label,
                 price_feed_id_type,
                 price_feed_symbol,
                 price_feed_decimal,
@@ -68,6 +70,9 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::QueryConfig {} => to_binary(&query_config(deps)?),
         QueryMsg::QueryPythFeederConfig { asset } => {
             to_binary(&query_pyth_feeder_config(deps, asset)?)
+        },
+        QueryMsg::QueryExchangeRateByAssetLabel {base_label, quote_label} => {
+            to_binary(&query_exchange_rate_by_asset_label(deps, env,base_label, quote_label)?)
         }
     }
 }
