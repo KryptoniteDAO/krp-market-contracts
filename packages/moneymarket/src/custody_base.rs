@@ -10,7 +10,7 @@ pub struct InstantiateMsg {
     /// owner address
     pub owner: String,
     /// bAsset native token address
-    pub collateral_denom: String,
+    pub collateral_token: String,
     /// overseer contract address
     pub overseer_contract: String,
     /// market contract address
@@ -67,6 +67,14 @@ pub enum ExecuteMsg {
         borrower: String,
         amount: Option<Uint256>,
     },
+
+    UpdateSwapContract {
+        swap_contract: String,
+    },
+    UpdateSwapDenom {
+        swap_denom: String,
+        is_add: bool,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -97,13 +105,16 @@ pub enum QueryMsg {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct ConfigResponse {
     pub owner: String,
-    pub collateral_denom: String,
+    pub collateral_token: String,
     pub overseer_contract: String,
     pub market_contract: String,
     pub reward_contract: String,
     pub liquidation_contract: String,
     pub stable_denom: String,
     pub basset_info: BAssetInfo,
+    pub swap_contract: Option<String>,
+    pub swap_denoms: Option<Vec<String>>,
+
 }
 
 // We define a custom struct for each query response

@@ -14,7 +14,7 @@ use crate::state::{read_config, store_config, Config};
 
 use cw20::Cw20ReceiveMsg;
 use moneymarket::common::optional_addr_validate;
-use moneymarket::custody::{
+use moneymarket::custody_base::{
     ConfigResponse, Cw20HookMsg, ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg,
 };
 
