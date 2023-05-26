@@ -36,6 +36,21 @@
     },
     "stable_denom": {
       "type": "string"
+    },
+    "swap_contract": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "swap_denoms": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "string"
+      }
     }
   },
   "definitions": {

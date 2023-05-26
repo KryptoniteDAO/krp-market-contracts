@@ -10,7 +10,9 @@
     "overseer_contract",
     "owner",
     "reward_contract",
-    "stable_denom"
+    "stable_denom",
+    "swap_contract",
+    "swap_denoms"
   ],
   "properties": {
     "basset_info": {
@@ -43,6 +45,15 @@
     "stable_denom": {
       "description": "Expected reward denom. If bAsset reward is not same with it, we try to convert the reward to the `stable_denom`.",
       "type": "string"
+    },
+    "swap_contract": {
+      "type": "string"
+    },
+    "swap_denoms": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
     }
   },
   "definitions": {

@@ -80,6 +80,31 @@
         }
       },
       "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "query_exchange_rate_by_asset_label"
+      ],
+      "properties": {
+        "query_exchange_rate_by_asset_label": {
+          "type": "object",
+          "required": [
+            "base_label",
+            "quote_label"
+          ],
+          "properties": {
+            "base_label": {
+              "type": "string"
+            },
+            "quote_label": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
     }
   ]
 }

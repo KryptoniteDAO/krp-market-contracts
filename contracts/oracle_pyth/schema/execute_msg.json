@@ -92,6 +92,27 @@
         }
       },
       "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "change_pyth_contract"
+      ],
+      "properties": {
+        "change_pyth_contract": {
+          "type": "object",
+          "required": [
+            "pyth_contract"
+          ],
+          "properties": {
+            "pyth_contract": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
     }
   ]
 }

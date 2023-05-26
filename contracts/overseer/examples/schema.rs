@@ -7,7 +7,7 @@ use moneymarket::overseer::{
     AllCollateralsResponse, BorrowLimitResponse, CollateralsResponse, ConfigResponse, ExecuteMsg,
     InstantiateMsg, MigrateMsg, QueryMsg, WhitelistResponse
 };
-use moneymarket_overseer::state::EpochState;
+use moneymarket_overseer::state::{EpochState, DynrateState};
 
 fn main() {
     let mut out_dir = current_dir().unwrap();
@@ -25,4 +25,5 @@ fn main() {
     export_schema(&schema_for!(ConfigResponse), &out_dir);
     export_schema(&schema_for!(EpochState), &out_dir);
     export_schema(&schema_for!(WhitelistResponse), &out_dir);
+    export_schema(&schema_for!(DynrateState), &out_dir);
 }

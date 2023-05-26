@@ -4,7 +4,7 @@ use std::fs::create_dir_all;
 use cosmwasm_schema::{export_schema, remove_schemas, schema_for};
 
 use moneymarket::oracle::{
-    ConfigResponse, ExecuteMsg, InstantiateMsg, PriceResponse, PricesResponse, QueryMsg,
+    ConfigResponse, ExecuteMsg, InstantiateMsg, PriceResponse, PricesResponse, QueryMsg, FeederResponse
 };
 
 fn main() {
@@ -19,4 +19,5 @@ fn main() {
     export_schema(&schema_for!(ConfigResponse), &out_dir);
     export_schema(&schema_for!(PriceResponse), &out_dir);
     export_schema(&schema_for!(PricesResponse), &out_dir);
+    export_schema(&schema_for!(FeederResponse), &out_dir);
 }
