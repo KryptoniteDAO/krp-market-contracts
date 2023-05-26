@@ -24,6 +24,7 @@ use cosmwasm_bignumber::{Decimal256, Uint256};
 use moneymarket::common::optional_addr_validate;
 use moneymarket::market::EpochStateResponse;
 use moneymarket::market::ExecuteMsg as MarketExecuteMsg;
+use moneymarket::custody::ExecuteMsg as CustodyExecuteMsg;
 use moneymarket::overseer::{
     ConfigResponse, ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg, WhitelistResponse,
     WhitelistResponseElem,
@@ -543,14 +544,14 @@ pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<Response, Con
     }
 
     // Execute DistributeRewards
-    // let whitelist: Vec<WhitelistResponseElem> = read_whitelist(deps.as_ref(), None, None)?;
-    // for elem in whitelist.iter() {
-    //     messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
-    //         contract_addr: elem.custody_contract.clone(),
-    //         funds: vec![],
-    //         msg: to_binary(&CustodyExecuteMsg::DistributeRewards {})?,
-    //     }));
-    // }
+    let whitelist: Vec<WhitelistResponseElem> = read_whitelist(deps.as_ref(), None, None)?;
+    for elem in whitelist.iter() {
+        messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: elem.custody_contract.clone(),
+            funds: vec![],
+            msg: to_binary(&CustodyExecuteMsg::DistributeRewards {})?,
+        }));
+    }
 
     // TODO: Should this become a reply? If so which SubMsg to make reply_on?
     // Execute store epoch state operation
@@ -569,7 +570,7 @@ pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<Response, Con
         attr("exchange_rate", epoch_state.exchange_rate.to_string()),
         attr("atoken_supply", epoch_state.atoken_supply),
         attr("distributed_interest", distributed_interest),
-        //attr("anc_purchase_amount", anc_purchase_amount),
+        attr("anc_purchase_amount", anc_purchase_amount),
     ]))
 }
 
