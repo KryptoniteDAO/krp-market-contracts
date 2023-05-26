@@ -1,6 +1,6 @@
 use crate::error::ContractError;
 use crate::handler::{change_owner, change_pyth_contract, config_feed_info, set_config_feed_valid};
-use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
+use crate::msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
 use crate::querier::{query_config, query_exchange_rate_by_asset_label, query_price, query_prices, query_pyth_feeder_config};
 use crate::state::{store_config, Config};
 use cosmwasm_std::{
@@ -76,6 +76,10 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     }
 }
 
+#[cfg_attr(not(feature = "library"), entry_point)]
+pub fn migrate(_deps: DepsMut, _env: Env, _msg: MigrateMsg) -> StdResult<Response> {
+    Ok(Response::default())
+}
 #[cfg(test)]
 mod tests {
 

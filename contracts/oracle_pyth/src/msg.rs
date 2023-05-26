@@ -90,3 +90,6 @@ pub enum QueryMsg {
     QueryPythFeederConfig { asset: String },
     QueryExchangeRateByAssetLabel { base_label: String, quote_label: String },
 }
+
+#[cw_serde]
+pub struct MigrateMsg {}
