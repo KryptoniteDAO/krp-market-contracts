@@ -104,6 +104,7 @@ pub fn swap_to_stable_denom(
     let swap_denoms = config.swap_denoms.clone();
     let reward_denom = config.stable_denom.clone();
     let swap_addr = deps.api.addr_humanize(&config.swap_contract)?;
+    let reward_addr = deps.api.addr_humanize(&config.reward_contract)?;
 
     let mut messages: Vec<SubMsg> = Vec::new();
     for coin in balances {
@@ -114,6 +115,7 @@ pub fn swap_to_stable_denom(
             let swap_msg = SwapExecteMsg::SwapDenom {
                 from_coin: coin.clone(),
                 target_denom: reward_denom.clone(),
+                to_address: Option::from(reward_addr.to_string())
             };
             messages.push(SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
                 contract_addr: swap_addr.clone().to_string(),
