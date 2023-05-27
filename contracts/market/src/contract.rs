@@ -79,9 +79,6 @@ pub fn instantiate(
             anc_emission_rate: msg.anc_emission_rate,
             prev_atoken_supply: Uint256::zero(),
             prev_exchange_rate: Decimal256::one(),
-            //     contract_balance: Uint256::zero(),
-            //     effective_deposit_rate: Decimal256::one(),
-            //     target_deposit_rate: Decimal256::zero(),
         },
     )?;
 
@@ -223,7 +220,6 @@ pub fn execute(
             prev_balance,
         } => {
             let api = deps.api;
-            //return Err(ContractError::Std(StdError::generic_err("call RepayStableFromLiquidation{}")));
             repay_stable_from_liquidation(
                 deps,
                 env,
