@@ -407,15 +407,13 @@ pub fn query_borrower_info(
     compute_interest(deps, &config, &mut state, block_height, None)?;
     compute_borrower_interest(&state, &mut borrower_info);
 
-    compute_reward(&mut state, block_height);
-    compute_borrower_reward(&state, &mut borrower_info);
+    // compute_reward(&mut state, block_height);
+    // compute_borrower_reward(&state, &mut borrower_info);
 
     Ok(BorrowerInfoResponse {
         borrower: borrower.to_string(),
         interest_index: borrower_info.interest_index,
-        reward_index: borrower_info.reward_index,
         loan_amount: borrower_info.loan_amount,
-        pending_rewards: borrower_info.pending_rewards,
     })
 }
 

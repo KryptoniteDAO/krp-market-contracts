@@ -37,9 +37,7 @@ pub struct State {
     pub anc_emission_rate: Decimal256,
     pub prev_atoken_supply: Uint256,
     pub prev_exchange_rate: Decimal256,
-    // pub contract_balance: Uint256,
-    // pub effective_deposit_rate: Decimal256,
-    // pub target_deposit_rate: Decimal256,
+
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -109,9 +107,7 @@ pub fn read_borrower_infos(
             Ok(BorrowerInfoResponse {
                 borrower,
                 interest_index: v.interest_index,
-                reward_index: v.reward_index,
                 loan_amount: v.loan_amount,
-                pending_rewards: v.pending_rewards,
             })
         })
         .collect()

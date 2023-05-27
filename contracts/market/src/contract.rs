@@ -506,6 +506,7 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
             optional_addr_validate(deps.api, start_after)?,
             limit,
         )?),
+        
     }
 }
 
@@ -563,21 +564,16 @@ pub fn query_state(deps: Deps, env: Env, block_height: Option<u64>) -> StdResult
     // Compute interest rate with given block height
     compute_interest(deps, &config, &mut state, block_height, None)?;
 
-    // Compute reward rate with given block height
-    compute_reward(&mut state, block_height);
+    // // Compute reward rate with given block height
+    // compute_reward(&mut state, block_height);
 
     Ok(StateResponse {
         total_liabilities: state.total_liabilities,
         total_reserves: state.total_reserves,
         last_interest_updated: state.last_interest_updated,
-        last_reward_updated: state.last_reward_updated,
         global_interest_index: state.global_interest_index,
-        global_reward_index: state.global_reward_index,
         prev_atoken_supply: state.prev_atoken_supply,
         prev_exchange_rate: state.prev_exchange_rate,
-        // contract_balance: state.contract_balance,
-        // effective_deposit_rate: state.effective_deposit_rate,
-        // target_deposit_rate: state.target_deposit_rate,
     })
 }
 

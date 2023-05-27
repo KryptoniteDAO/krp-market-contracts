@@ -142,14 +142,9 @@ pub struct StateResponse {
     pub total_liabilities: Decimal256,
     pub total_reserves: Decimal256,
     pub last_interest_updated: u64,
-    pub last_reward_updated: u64,
     pub global_interest_index: Decimal256,
-    pub global_reward_index: Decimal256,
     pub prev_atoken_supply: Uint256,
     pub prev_exchange_rate: Decimal256,
-    // pub contract_balance: Uint256,
-    // pub effective_deposit_rate: Decimal256,
-    // pub target_deposit_rate: Decimal256,
 }
 
 // We define a custom struct for each query response
@@ -164,9 +159,8 @@ pub struct EpochStateResponse {
 pub struct BorrowerInfoResponse {
     pub borrower: String,
     pub interest_index: Decimal256,
-    pub reward_index: Decimal256,
     pub loan_amount: Uint256,
-    pub pending_rewards: Decimal256,
+   
 }
 
 // We define a custom struct for each query response
