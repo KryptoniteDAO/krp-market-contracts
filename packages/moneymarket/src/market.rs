@@ -2,7 +2,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use cosmwasm_bignumber::{Decimal256, Uint256};
-use cw20::Cw20ReceiveMsg;
+use cw20::{Cw20Coin, Cw20ReceiveMsg, MinterResponse};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -11,12 +11,15 @@ pub struct InstantiateMsg {
     pub owner_addr: String,
     /// stable coin denom used to borrow & repay
     pub stable_denom: String,
+    /// stable coin simple name
+    pub stable_name: String,
     /// Kryptonite token code ID used to instantiate
     pub atoken_code_id: u64,
     /// Anchor token distribution speed
-    pub anc_emission_rate: Decimal256,
+    pub krp_emission_rate: Decimal256,
     /// Maximum allowed borrow rate over deposited stable balance
     pub max_borrow_factor: Decimal256,
+ 
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -40,6 +43,10 @@ pub enum ExecuteMsg {
         collector_contract: String,
         /// Faucet contract to drip ANC token to users
         distributor_contract: String,
+        /// oracle contract address
+        oracle_contract: String,   
+        /// liquidation contract address 
+        liquidation_contract: String,
     },
 
     /// Update config values
@@ -61,7 +68,7 @@ pub enum ExecuteMsg {
 
     /// Execute epoch operations
     /// 1. send reserve to collector contract
-    /// 2. update anc_emission_rate state
+    /// 2. update krp_emission_rate state
     ExecuteEpochOperations {
         deposit_rate: Decimal256,
         target_deposit_rate: Decimal256,
@@ -113,6 +120,7 @@ pub enum QueryMsg {
     },
     BorrowerInfo {
         borrower: String,
+        is_loan_value: Option<bool>,
         block_height: Option<u64>,
     },
     BorrowerInfos {
@@ -132,6 +140,8 @@ pub struct ConfigResponse {
     pub overseer_contract: String,
     pub collector_contract: String,
     pub distributor_contract: String,
+    pub oracle_contract: String,
+    pub liquidation_contract: String,
     pub stable_denom: String,
     pub max_borrow_factor: Decimal256,
 }
@@ -142,7 +152,9 @@ pub struct StateResponse {
     pub total_liabilities: Decimal256,
     pub total_reserves: Decimal256,
     pub last_interest_updated: u64,
+    pub last_reward_updated: u64,
     pub global_interest_index: Decimal256,
+    pub global_reward_index: Decimal256,
     pub prev_atoken_supply: Uint256,
     pub prev_exchange_rate: Decimal256,
 }
@@ -159,8 +171,10 @@ pub struct EpochStateResponse {
 pub struct BorrowerInfoResponse {
     pub borrower: String,
     pub interest_index: Decimal256,
+    //pub reward_index: Decimal256,
     pub loan_amount: Uint256,
-   
+    //pub pending_rewards: Decimal256,
+    pub loan_value: Option<Uint256>, 
 }
 
 // We define a custom struct for each query response
@@ -169,6 +183,17 @@ pub struct BorrowerInfosResponse {
     pub borrower_infos: Vec<BorrowerInfoResponse>,
 }
 
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct TokenInstantiateMsg {
+    pub name: String,
+    pub symbol: String,
+    pub decimals: u8,
+    pub initial_balances: Vec<Cw20Coin>,
+    pub mint: Option<MinterResponse>,
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct MigrateMsg {}
+

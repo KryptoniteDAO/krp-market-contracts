@@ -32,7 +32,7 @@ pub struct InstantiateMsg {
     /// Ratio to be distributed from the interest buffer
     pub buffer_distribution_factor: Decimal256,
     /// Ratio to be used for purchasing ANC token from the interest buffer
-    pub anc_purchase_factor: Decimal256,
+    pub krp_purchase_factor: Decimal256,
     /// Valid oracle price timeframe
     pub price_timeframe: u64,
     /// # of blocks per each dynamic rate change period
@@ -63,18 +63,11 @@ pub enum ExecuteMsg {
         owner_addr: Option<String>,
         oracle_contract: Option<String>,
         liquidation_contract: Option<String>,
-        threshold_deposit_rate: Option<Decimal256>,
-        target_deposit_rate: Option<Decimal256>,
-        buffer_distribution_factor: Option<Decimal256>,
-        anc_purchase_factor: Option<Decimal256>,
+        krp_purchase_factor: Option<Decimal256>,
         epoch_period: Option<u64>,
         price_timeframe: Option<u64>,
-        dyn_rate_epoch: Option<u64>,
-        dyn_rate_maxchange: Option<Decimal256>,
-        dyn_rate_yr_increase_expectation: Option<Decimal256>,
-        dyn_rate_min: Option<Decimal256>,
-        dyn_rate_max: Option<Decimal256>,
     },
+    
     /// Create new custody contract for the given collateral token
     Whitelist {
         name: String,             // bAsset name
@@ -83,23 +76,25 @@ pub enum ExecuteMsg {
         custody_contract: String, // bAsset custody contract
         max_ltv: Decimal256,      // Loan To Value ratio
     },
+    
     /// Update registered whitelist info
     UpdateWhitelist {
         collateral_token: String,         // bAsset token contract
         custody_contract: Option<String>, // bAsset custody contract
         max_ltv: Option<Decimal256>,      // Loan To Value ratio
     },
-
+    
     /// Claims all staking rewards from the bAsset contracts
     /// and also do a epoch basis updates
     /// 1. Distribute interest buffers to depositors
     /// 2. Invoke [Custody] DistributeRewards
     /// 3. Update epoch state
     ExecuteEpochOperations {},
-    UpdateEpochState {
-        interest_buffer: Uint256,
-        distributed_interest: Uint256,
-    },
+    // UpdateEpochState {
+    //     market_contract: String,
+    //     interest_buffer: Uint256,
+    //     distributed_interest: Uint256,
+    // },
 
     ////////////////////
     /// User operations
@@ -122,16 +117,68 @@ pub enum ExecuteMsg {
     FundReserve {},
 
     RepayStableFromYieldReserve {
+        market_contract: String,
         borrower: String,
     },
+
+    RegisterMarket{    
+         //market info
+         market_contract: String,
+         stable_denom: String,
+         stable_name: String,
+         //market config
+         threshold_deposit_rate: Decimal256,
+         target_deposit_rate: Decimal256,
+         buffer_distribution_factor: Decimal256,
+         //dynrate config
+         dyn_rate_epoch: u64,
+         dyn_rate_maxchange: Decimal256,
+         dyn_rate_yr_increase_expectation: Decimal256,
+         dyn_rate_min: Decimal256,
+         dyn_rate_max: Decimal256,
+    }, 
+
+    UpdateMarketConfig{
+        market_contract: String,
+        threshold_deposit_rate: Option<Decimal256>,
+        target_deposit_rate: Option<Decimal256>,
+        buffer_distribution_factor: Option<Decimal256>,
+    },
+
+    UpdateMarketDynrateConfig{
+        market_contract: String,
+        dyn_rate_epoch: Option<u64>,
+        dyn_rate_maxchange: Option<Decimal256>,
+        dyn_rate_yr_increase_expectation: Option<Decimal256>,
+        dyn_rate_min: Option<Decimal256>,
+        dyn_rate_max: Option<Decimal256>,
+    }
+
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
     Config {},
-    EpochState {},
-    DynrateState {},
+    
+    EpochState {
+        market_contract: String,
+    },
+    
+    DynrateState {
+        market_contract: String,
+    },
+    
+    MarketConfig {
+        market_contract: String,
+    },
+    
+    MarketList {
+        market_contract: Option<String>,
+        start_after: Option<String>,
+        limit: Option<u32>,
+    },
+
     Whitelist {
         collateral_token: Option<String>,
         start_after: Option<String>,
@@ -140,6 +187,7 @@ pub enum QueryMsg {
     Collaterals {
         borrower: String,
     },
+    
     AllCollaterals {
         start_after: Option<String>,
         limit: Option<u32>,
@@ -155,16 +203,21 @@ pub enum QueryMsg {
 pub struct ConfigResponse {
     pub owner_addr: String,
     pub oracle_contract: String,
-    pub market_contract: String,
     pub liquidation_contract: String,
     pub collector_contract: String,
-    pub threshold_deposit_rate: Decimal256,
-    pub target_deposit_rate: Decimal256,
-    pub buffer_distribution_factor: Decimal256,
-    pub anc_purchase_factor: Decimal256,
-    pub stable_denom: String,
+    pub krp_purchase_factor: Decimal256,
     pub epoch_period: u64,
     pub price_timeframe: u64,
+}
+
+// We define a custom struct for each query response
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct RegisterMarketInfo {
+    // market info
+    pub market_contract: String, 
+    pub stable_denom: String,
+    pub stable_name: String,
+    //dynrate config
     pub dyn_rate_epoch: u64,
     pub dyn_rate_maxchange: Decimal256,
     pub dyn_rate_yr_increase_expectation: Decimal256,
@@ -182,11 +235,41 @@ pub struct WhitelistResponseElem {
     pub collateral_token: String,
 }
 
+
 // We define a custom struct for each query response
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct WhitelistResponse {
     pub elems: Vec<WhitelistResponseElem>,
 }
+
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct MarketInfoResponse {
+    pub market_contract: String,
+    pub stable_denom: String,
+    pub stable_name: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct MarketConfigResponse {
+    pub threshold_deposit_rate: Decimal256,
+    pub target_deposit_rate: Decimal256,
+    pub buffer_distribution_factor: Decimal256,
+}
+
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct MarketlistResponseElem {
+    pub market_contract: String, 
+    pub stable_denom: String,
+    pub stable_name: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct MarketlistResponse {
+    pub elems: Vec<MarketlistResponseElem>,
+}
+
 
 // We define a custom struct for each query response
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

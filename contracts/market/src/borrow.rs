@@ -5,8 +5,11 @@ use cosmwasm_std::{
 
 use moneymarket::interest_model::BorrowRateResponse;
 use moneymarket::market::{BorrowerInfoResponse, BorrowerInfosResponse};
+use moneymarket::oracle::PriceResponse;
 use moneymarket::overseer::BorrowLimitResponse;
-use moneymarket::querier::{deduct_tax, query_balance, query_supply};
+use moneymarket::querier::{
+    deduct_tax, query_balance, query_overseer_config, query_price, query_supply,
+};
 
 use crate::deposit::compute_exchange_rate_raw;
 use crate::error::ContractError;
@@ -35,7 +38,7 @@ pub fn borrow_stable(
     compute_interest(deps.as_ref(), &config, &mut state, env.block.height, None)?;
     compute_borrower_interest(&state, &mut liability);
 
-    // Compute ANC reward
+    // Compute KRP reward
     compute_reward(&mut state, env.block.height);
     compute_borrower_reward(&state, &mut liability);
 
@@ -156,7 +159,7 @@ pub fn repay_stable(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     )?;
     compute_borrower_interest(&state, &mut liability);
 
-    // Compute ANC reward
+    // Compute KRP reward
     compute_reward(&mut state, env.block.height);
     compute_borrower_reward(&state, &mut liability);
 
@@ -221,7 +224,7 @@ pub fn claim_rewards(
     compute_interest(deps.as_ref(), &config, &mut state, env.block.height, None)?;
     compute_borrower_interest(&state, &mut liability);
 
-    // Compute ANC reward
+    // Compute KRP reward
     compute_reward(&mut state, env.block.height);
     compute_borrower_reward(&state, &mut liability);
 
@@ -286,8 +289,11 @@ pub fn compute_interest(
         state.total_reserves,
     )?;
 
-    let target_deposit_rate: Decimal256 =
-        query_target_deposit_rate(deps, deps.api.addr_humanize(&config.overseer_contract)?)?;
+    let target_deposit_rate: Decimal256 = query_target_deposit_rate(
+        deps,
+        deps.api.addr_humanize(&config.overseer_contract)?,
+        deps.api.addr_humanize(&config.contract_addr)?,
+    )?;
 
     compute_interest_raw(
         state,
@@ -347,9 +353,6 @@ pub fn compute_interest_raw(
     state.prev_atoken_supply = atoken_supply;
     state.prev_exchange_rate = exchange_rate;
     state.last_interest_updated = block_height;
-    // state.contract_balance = balance;
-    // state.effective_deposit_rate = effective_deposit_rate;
-    // state.target_deposit_rate = target_deposit_rate;
 }
 
 /// Compute new interest and apply to liability
@@ -366,7 +369,7 @@ pub fn compute_reward(state: &mut State, block_height: u64) {
     }
 
     let passed_blocks = Decimal256::from_uint256(block_height - state.last_reward_updated);
-    let reward_accrued = passed_blocks * state.anc_emission_rate;
+    let reward_accrued = passed_blocks * state.krp_emission_rate;
     let borrow_amount = state.total_liabilities / state.global_interest_index;
 
     if !reward_accrued.is_zero() && !borrow_amount.is_zero() {
@@ -388,6 +391,7 @@ pub fn query_borrower_info(
     deps: Deps,
     env: Env,
     borrower: Addr,
+    is_loan_value: Option<bool>,
     block_height: Option<u64>,
 ) -> StdResult<BorrowerInfoResponse> {
     let mut borrower_info: BorrowerInfo = read_borrower_info(
@@ -410,10 +414,28 @@ pub fn query_borrower_info(
     // compute_reward(&mut state, block_height);
     // compute_borrower_reward(&state, &mut borrower_info);
 
+    let mut loan_value = Uint256::zero();
+    if  let Some(true) = is_loan_value { 
+        let overseer_config = query_overseer_config(deps, config.overseer_contract.clone())?;
+        //query stable coin price value
+        let price: PriceResponse = query_price(
+            deps,
+            deps.api
+                .addr_validate(&overseer_config.oracle_contract.as_str())?,
+            config.stable_denom,
+            "".to_string(),
+            None,
+        )?;
+        loan_value = Decimal256::from_uint256(borrower_info.loan_amount) * price.rate * Uint256::one();
+    }
+
     Ok(BorrowerInfoResponse {
         borrower: borrower.to_string(),
         interest_index: borrower_info.interest_index,
+       // reward_index: borrower_info.reward_index,
         loan_amount: borrower_info.loan_amount,
+       // pending_rewards: borrower_info.pending_rewards,
+        loan_value: Some(loan_value.into()),
     })
 }
 

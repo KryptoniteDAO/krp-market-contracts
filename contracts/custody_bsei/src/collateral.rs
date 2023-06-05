@@ -4,14 +4,16 @@ use crate::state::{
     BorrowerInfo, Config,
 };
 
-use cosmwasm_bignumber::Uint256;
+use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::{
-    attr, to_binary, Addr, CanonicalAddr, CosmosMsg, Deps, DepsMut, MessageInfo, Response,
+    attr, to_binary, Addr, CanonicalAddr, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response,
     StdError, StdResult, WasmMsg,
 };
 use cw20::Cw20ExecuteMsg;
 use moneymarket::custody::{BorrowerResponse, BorrowersResponse};
 use moneymarket::liquidation::Cw20HookMsg as LiquidationCw20HookMsg;
+use moneymarket::market::BorrowerInfoResponse;
+use moneymarket::querier::{query_borrower_info, query_market_config, query_market_list};
 
 /// Deposit new collateral
 /// Executor: borrower
@@ -174,13 +176,16 @@ pub fn unlock_collateral(
 
 pub fn liquidate_collateral(
     deps: DepsMut,
+    env: Env,
     info: MessageInfo,
     liquidator: Addr,
     borrower: Addr,
     amount: Uint256,
+    total_borrow_amount: Uint256,
 ) -> Result<Response, ContractError> {
     let config: Config = read_config(deps.storage)?;
-    if deps.api.addr_canonicalize(info.sender.as_str())? != config.overseer_contract {
+    let overseer_contract = config.overseer_contract.clone();
+    if deps.api.addr_canonicalize(info.sender.as_str())? != overseer_contract.clone() {
         return Err(ContractError::Unauthorized {});
     }
 
@@ -196,8 +201,35 @@ pub fn liquidate_collateral(
     borrower_info.balance = borrower_info.balance - amount;
     store_borrower_info(deps.storage, &borrower_raw, &borrower_info)?;
 
-    Ok(Response::new()
-        .add_message(CosmosMsg::Wasm(WasmMsg::Execute {
+    let market_list_res = query_market_list(deps.as_ref(), overseer_contract.clone())?;
+
+    let mut transfer_collateral_messages: Vec<CosmosMsg> = vec![];
+    for market in market_list_res.elems {
+        let borrow_amount_res: BorrowerInfoResponse = query_borrower_info(
+            deps.as_ref(),
+            deps.api.addr_validate(market.market_contract.as_str())?,
+            borrower.clone(),
+            true,
+            env.block.height,
+        )?;
+
+        if let Some(loan_value) = borrow_amount_res.loan_value {
+            if loan_value == Uint256::zero() {
+                continue;
+            }
+        } else {
+            continue;
+        }
+
+        let market_liquidator_amount =
+            Decimal256::from_ratio(borrow_amount_res.loan_value.unwrap(), total_borrow_amount) * amount;
+        let market_config = query_market_config(
+            deps.as_ref(),
+            deps.api
+                .addr_canonicalize(market.market_contract.as_str())?,
+        )?;
+
+        transfer_collateral_messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: deps
                 .api
                 .addr_humanize(&config.collateral_token)?
@@ -206,9 +238,9 @@ pub fn liquidate_collateral(
             msg: to_binary(&Cw20ExecuteMsg::Send {
                 contract: deps
                     .api
-                    .addr_humanize(&config.liquidation_contract)?
+                    .addr_validate(market_config.liquidation_contract.as_str())?
                     .to_string(),
-                amount: amount.into(),
+                amount: market_liquidator_amount.into(),
                 msg: to_binary(&LiquidationCw20HookMsg::ExecuteBid {
                     liquidator: liquidator.to_string(),
                     fee_address: Some(
@@ -216,12 +248,14 @@ pub fn liquidate_collateral(
                             .addr_humanize(&config.overseer_contract)?
                             .to_string(),
                     ),
-                    repay_address: Some(
-                        deps.api.addr_humanize(&config.market_contract)?.to_string(),
-                    ),
+                    repay_address: Some(market.market_contract),
                 })?,
             })?,
-        }))
+        }));
+    }
+
+    Ok(Response::new()
+        .add_messages(transfer_collateral_messages)
         .add_attributes(vec![
             attr("action", "liquidate_collateral"),
             attr("liquidator", liquidator),

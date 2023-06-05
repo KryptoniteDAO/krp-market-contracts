@@ -2,9 +2,7 @@ use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::{to_binary, Addr, Deps, QueryRequest, StdResult, WasmQuery};
 
 use moneymarket::liquidation::{LiquidationAmountResponse, QueryMsg as LiquidationQueryMsg};
-use moneymarket::market::{
-    BorrowerInfoResponse, EpochStateResponse, QueryMsg as MarketQueryMsg, StateResponse,
-};
+use moneymarket::market::{ EpochStateResponse, QueryMsg as MarketQueryMsg, StateResponse, };
 use moneymarket::tokens::TokensHuman;
 
 pub fn query_market_state(
@@ -22,7 +20,7 @@ pub fn query_market_state(
     Ok(epoch_state)
 }
 
-pub fn query_epoch_state(
+pub fn query_market_epoch_state(
     deps: Deps,
     market_addr: Addr,
     block_height: u64,
@@ -40,24 +38,6 @@ pub fn query_epoch_state(
     Ok(epoch_state)
 }
 
-/// Query borrow amount from the market contract
-pub fn query_borrower_info(
-    deps: Deps,
-    market_addr: Addr,
-    borrower: Addr,
-    block_height: u64,
-) -> StdResult<BorrowerInfoResponse> {
-    let borrower_amount: BorrowerInfoResponse =
-        deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
-            contract_addr: market_addr.to_string(),
-            msg: to_binary(&MarketQueryMsg::BorrowerInfo {
-                borrower: borrower.to_string(),
-                block_height: Some(block_height),
-            })?,
-        }))?;
-
-    Ok(borrower_amount)
-}
 
 #[allow(clippy::ptr_arg)]
 pub fn query_liquidation_amount(

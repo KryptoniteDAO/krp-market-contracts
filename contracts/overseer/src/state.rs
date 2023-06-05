@@ -5,31 +5,48 @@ use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::{CanonicalAddr, Deps, Order, StdError, StdResult, Storage};
 use cosmwasm_storage::{Bucket, ReadonlyBucket, ReadonlySingleton, Singleton};
 
-use moneymarket::overseer::{CollateralsResponse, WhitelistResponseElem};
+use moneymarket::overseer::{CollateralsResponse, WhitelistResponseElem, MarketlistResponseElem,};
 use moneymarket::tokens::Tokens;
 
+pub type Market = (CanonicalAddr, String);
+pub type Markets = Vec<Market>;
+
 const KEY_CONFIG: &[u8] = b"config";
-const KEY_DYNRATE_CONFIG: &[u8] = b"dynrate_config";
-const KEY_EPOCH_STATE: &[u8] = b"epoch_state";
-const KEY_DYNRATE_STATE: &[u8] = b"dynrate_state";
+const PREFIX_DYNRATE_CONFIG: &[u8] = b"dynrate_config";
+const PREFIX_EPOCH_STATE: &[u8] = b"epoch_state";
+const PREFIX_DYNRATE_STATE: &[u8] = b"dynrate_state";
+const PREFIX_MARKET_CONFIG: &[u8] = b"market_config";
 
 const PREFIX_WHITELIST: &[u8] = b"whitelist";
 const PREFIX_COLLATERALS: &[u8] = b"collateral";
+
+static PREFIX_MARKETLIST: &[u8] = b"marketlist";
+
+
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Config {
     pub owner_addr: CanonicalAddr,
     pub oracle_contract: CanonicalAddr,
-    pub market_contract: CanonicalAddr,
     pub liquidation_contract: CanonicalAddr,
     pub collector_contract: CanonicalAddr,
-    pub stable_denom: String,
     pub epoch_period: u64,
+    pub krp_purchase_factor: Decimal256,
+    pub price_timeframe: u64,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct MarketlistElem {
+    pub market_contract:CanonicalAddr, 
+    pub stable_denom: String,
+    pub stable_name: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct MarketConfig {
     pub threshold_deposit_rate: Decimal256,
     pub target_deposit_rate: Decimal256,
     pub buffer_distribution_factor: Decimal256,
-    pub anc_purchase_factor: Decimal256,
-    pub price_timeframe: u64,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -73,28 +90,92 @@ pub fn read_config(storage: &dyn Storage) -> StdResult<Config> {
     ReadonlySingleton::new(storage, KEY_CONFIG).load()
 }
 
-pub fn store_dynrate_config(storage: &mut dyn Storage, data: &DynrateConfig) -> StdResult<()> {
-    Singleton::new(storage, KEY_DYNRATE_CONFIG).save(data)
+pub fn store_market_config(
+    storage: &mut dyn Storage,
+    market_contract: &CanonicalAddr, 
+    market_config: &MarketConfig,
+) -> StdResult<()> {
+    let mut market_config_bucket: Bucket<MarketConfig> = Bucket::new(storage, PREFIX_MARKET_CONFIG);
+    market_config_bucket.save(&market_contract.as_slice(), market_config)?;
+
+    Ok(())
 }
 
-pub fn read_dynrate_config(storage: &dyn Storage) -> StdResult<DynrateConfig> {
-    ReadonlySingleton::new(storage, KEY_DYNRATE_CONFIG).load()
+pub fn read_market_config(
+    storage: &dyn Storage,
+    market_contract: &CanonicalAddr,
+)-> StdResult<MarketConfig> {
+    let market_config_bucket: ReadonlyBucket<MarketConfig> = ReadonlyBucket::new(storage, PREFIX_MARKET_CONFIG);
+    match market_config_bucket.load(&market_contract.as_slice()) {
+        Ok(v) => Ok(v),
+        _ => Err(StdError::generic_err("Market is not configured")),
+    }
 }
 
-pub fn store_epoch_state(storage: &mut dyn Storage, data: &EpochState) -> StdResult<()> {
-    Singleton::new(storage, KEY_EPOCH_STATE).save(data)
+pub fn store_market_dynrate_config(
+    storage: &mut dyn Storage,
+    market_contract: &CanonicalAddr, 
+    dynrate_config: &DynrateConfig,
+) -> StdResult<()> {
+    let mut dynrate_config_bucket: Bucket<DynrateConfig> = Bucket::new(storage, PREFIX_DYNRATE_CONFIG);
+    dynrate_config_bucket.save(&market_contract.as_slice(), dynrate_config)?;
+
+    Ok(())
 }
 
-pub fn read_epoch_state(storage: &dyn Storage) -> StdResult<EpochState> {
-    ReadonlySingleton::new(storage, KEY_EPOCH_STATE).load()
+pub fn read_market_dynrate_config(
+    storage: &dyn Storage,
+    market_contract: &CanonicalAddr,
+) -> StdResult<DynrateConfig> {
+    let dynrate_config_bucket: ReadonlyBucket<DynrateConfig> =  ReadonlyBucket::new(storage, PREFIX_DYNRATE_CONFIG);
+    match dynrate_config_bucket.load(&market_contract.as_slice()) {
+        Ok(v) => Ok(v),
+        _ => Err(StdError::generic_err("Market is not configured dynrate parameters"
+        )),
+    }       
 }
 
-pub fn store_dynrate_state(storage: &mut dyn Storage, data: &DynrateState) -> StdResult<()> {
-    Singleton::new(storage, KEY_DYNRATE_STATE).save(data)
+pub fn store_market_epoch_state(
+    storage: &mut dyn Storage, 
+    market_contract: &CanonicalAddr,
+    epoch_state: &EpochState,
+) -> StdResult<()> {
+    let mut epoch_state_bucket: Bucket<EpochState> = Bucket::new(storage, PREFIX_EPOCH_STATE);
+    epoch_state_bucket.save(&market_contract.as_slice(), epoch_state)?;
+    Ok(())
 }
 
-pub fn read_dynrate_state(storage: &dyn Storage) -> StdResult<DynrateState> {
-    ReadonlySingleton::new(storage, KEY_DYNRATE_STATE).load()
+pub fn read_market_epoch_state(
+    storage: &dyn Storage, 
+    market_contract: &CanonicalAddr,
+)->StdResult<EpochState> {
+    let epoch_state_bucket: ReadonlyBucket<EpochState> = ReadonlyBucket::new(storage, PREFIX_EPOCH_STATE);
+    match epoch_state_bucket.load(&market_contract.as_slice()) {
+        Ok(v)=> Ok(v),
+        _ => Err(StdError::generic_err("Read market epoch state failure")),
+    }
+}
+
+pub fn store_market_dynrate_state(
+    storage: &mut dyn Storage, 
+    market_contract: &CanonicalAddr, 
+    dynrate_state: &DynrateState,
+) -> StdResult<()> {
+    let mut dynrate_state_bucket: Bucket<DynrateState> = Bucket::new(storage, PREFIX_DYNRATE_STATE);
+    dynrate_state_bucket.save(&market_contract.as_slice(), dynrate_state)?;
+
+    Ok(())
+}
+
+pub fn read_market_dynrate_state(
+    storage: &dyn Storage,
+    market_contract: &CanonicalAddr,
+) -> StdResult<DynrateState> {
+    let dynrate_state_bucket: ReadonlyBucket<DynrateState> = ReadonlyBucket::new(storage, PREFIX_DYNRATE_STATE);
+    match dynrate_state_bucket.load(&market_contract.as_slice()) {
+        Ok(v) => Ok(v),
+        _ => Err(StdError::generic_err("Read market dynrate state failure")),
+    }
 }
 
 pub fn store_whitelist_elem(
@@ -146,6 +227,57 @@ pub fn read_whitelist(
                 collateral_token,
                 custody_contract,
                 max_ltv: v.max_ltv,
+            })
+        })
+        .collect()
+}
+
+pub fn store_marketlist_elem(
+    storage: &mut dyn Storage,
+    market_contract: &CanonicalAddr,
+    marketlist_elem: &MarketlistElem,
+) -> StdResult<()> {
+    let mut marketlist_bucket: Bucket<MarketlistElem> = Bucket::new(storage, PREFIX_MARKETLIST);
+    marketlist_bucket.save(&market_contract.as_slice(), marketlist_elem)?;
+
+    Ok(())
+}
+
+pub fn read_marketlist_elem(
+    storage: &dyn Storage,
+    market_contract: &CanonicalAddr,
+) ->StdResult<MarketlistElem> {
+    let marketlist_bucket: ReadonlyBucket<MarketlistElem> = 
+        ReadonlyBucket::new(storage, PREFIX_MARKETLIST);
+        match marketlist_bucket.load(&market_contract.as_slice()) {
+            Ok(v) => Ok(v),
+            _=> Err(StdError::generic_err("Market contract is not added to list",
+            )),    
+        }
+}
+
+
+pub fn read_all_marketlist(
+   deps: Deps, 
+   start_after: Option<CanonicalAddr>,
+   limit: Option<u32>,
+) -> StdResult<Vec<MarketlistResponseElem>> {
+    let marketlist_bucket: ReadonlyBucket<MarketlistElem> = 
+        ReadonlyBucket::new(deps.storage, PREFIX_MARKETLIST);
+
+    let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
+    let start = calc_range_start(start_after);
+
+    marketlist_bucket
+        .range(start.as_deref(), None, Order::Ascending)
+        .take(limit)
+        .map(|elem| {
+            let (k, v) = elem?;
+            let market_contract = deps.api.addr_humanize(&CanonicalAddr::from(k))?.to_string();
+            Ok(MarketlistResponseElem {
+                market_contract,
+                stable_denom : v.stable_denom,
+                stable_name: v.stable_name,
             })
         })
         .collect()

@@ -29,4 +29,7 @@ pub enum ContractError {
 
     #[error("Functionality deprecated")]
     Deprecated {},
+    
+    #[error("Market is already registered to list")]
+    MarketAreadyRegister{},
 }

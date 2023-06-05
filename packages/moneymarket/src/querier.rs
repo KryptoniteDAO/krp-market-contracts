@@ -8,6 +8,7 @@ use cosmwasm_std::{
     AllBalanceResponse,
     BalanceResponse,
     BankQuery,
+    CanonicalAddr,
     Coin,
     Deps,
     QueryRequest,
@@ -17,8 +18,13 @@ use cosmwasm_std::{
 };
 use cw20::{BalanceResponse as Cw20BalanceResponse, Cw20QueryMsg, TokenInfoResponse};
 
-use crate::oracle::{PriceResponse};
-use crate::oracle_pyth::{PriceResponse as PythPriceResponse,QueryMsg as PythOracleQueryMsg};
+use crate::market::{
+    BorrowerInfoResponse, ConfigResponse as MarketConfigResponse, QueryMsg as MarketQueryMsg,
+    StateResponse,
+};
+use crate::oracle::PriceResponse;
+use crate::oracle_pyth::{PriceResponse as PythPriceResponse, QueryMsg as PythOracleQueryMsg};
+use crate::overseer::{ConfigResponse, MarketlistResponse, QueryMsg as OverseerQueryMsg};
 
 pub fn query_all_balances(deps: Deps, account_addr: Addr) -> StdResult<Vec<Coin>> {
     // load price form the oracle
@@ -169,26 +175,80 @@ pub fn query_price(
         last_updated_quote: pyth_oracle_price.last_updated_quote,
     };
 
-    // let oracle_price: PriceResponse =
-    //     deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
-    //         contract_addr: oracle_addr.to_string(),
-    //         msg: to_binary(&OracleQueryMsg::Price { base, quote })?,
-    //     }))?;
-    //
-    //
-    // if let Some(time_constraints) = time_constraints {
-    //     let valid_update_time = time_constraints.block_time - time_constraints.valid_timeframe;
-    //     if oracle_price.last_updated_base < valid_update_time
-    //         || oracle_price.last_updated_quote < valid_update_time
-    //     {
-    //         let error_msg = format!(" Price is too old;time_constraints.block_time:{}, time_constraints.valid_timeframe:{},
-    //         oracle_price.last_updated_base: {}, valid_update_time: {}, oracle_price.last_updated_quote: {}",
-    //                                 time_constraints.block_time, time_constraints.valid_timeframe, oracle_price.last_updated_base,
-    //                                 valid_update_time, oracle_price.last_updated_quote);
-    //
-    //         return Err(StdError::generic_err(error_msg));
-    //     }
-    // }
-
     Ok(oracle_price)
+}
+
+pub fn query_overseer_config(
+    deps: Deps,
+    overseer_contract: CanonicalAddr,
+) -> StdResult<ConfigResponse> {
+    let overseer_config: ConfigResponse =
+        deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+            contract_addr: deps.api.addr_humanize(&overseer_contract)?.to_string(),
+            msg: to_binary(&OverseerQueryMsg::Config {})?,
+        }))?;
+
+    Ok(overseer_config)
+}
+
+pub fn query_market_config(
+    deps: Deps,
+    market_contract: CanonicalAddr,
+) -> StdResult<MarketConfigResponse> {
+    let config: MarketConfigResponse =
+        deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+            contract_addr: deps.api.addr_humanize(&market_contract)?.to_string(),
+            msg: to_binary(&MarketQueryMsg::Config {})?,
+        }))?;
+
+    Ok(config)
+}
+
+pub fn query_market_list(
+    deps: Deps,
+    overseer_contract: CanonicalAddr,
+) -> StdResult<MarketlistResponse> {
+    let market_list_res: MarketlistResponse =
+        deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+            contract_addr: deps.api.addr_humanize(&overseer_contract)?.to_string(),
+            msg: to_binary(&OverseerQueryMsg::MarketList {
+                market_contract: None,
+                start_after: None,
+                limit: None,
+            })?,
+        }))?;
+
+    Ok(market_list_res)
+}
+
+pub fn query_market_state(deps: Deps, market_contract: CanonicalAddr) -> StdResult<StateResponse> {
+    let market_state: StateResponse =
+        deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+            contract_addr: deps.api.addr_humanize(&market_contract)?.to_string(),
+            msg: to_binary(&MarketQueryMsg::State { block_height: None })?,
+        }))?;
+
+    Ok(market_state)
+}
+
+/// Query borrow amount from the market contract
+pub fn query_borrower_info(
+    deps: Deps,
+    market_addr: Addr,
+    borrower: Addr,
+    is_loan_value: bool,
+    block_height: u64,
+) -> StdResult<BorrowerInfoResponse> {
+    let borrower_amount: BorrowerInfoResponse =
+        deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+            contract_addr: market_addr.to_string(),
+            msg: to_binary(&MarketQueryMsg::BorrowerInfo {
+                borrower: borrower.to_string(),
+                is_loan_value: Some(is_loan_value),
+                block_height: Some(block_height),
+             
+            })?,
+        }))?;
+
+    Ok(borrower_amount)
 }

@@ -9,7 +9,7 @@ use crate::collateral::{
     deposit_collateral, liquidate_collateral, lock_collateral, query_borrower, query_borrowers,
     unlock_collateral, withdraw_collateral,
 };
-use crate::distribution::{distribute_hook, distribute_rewards, swap_to_stable_denom};
+use crate::distribution::{distribute_hook, distribute_rewards, swap_to_stable_denom, swap_to_market_stable_denom};
 use crate::error::ContractError;
 use crate::state::{read_config, store_config, Config};
 
@@ -22,6 +22,7 @@ use crate::handler::{update_swap_contract, update_swap_denom};
 
 pub const CLAIM_REWARDS_OPERATION: u64 = 1u64;
 pub const SWAP_TO_STABLE_OPERATION: u64 = 2u64;
+pub const SWAP_TO_MARKET_STABLE_OPERATION: u64 =3u64;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -34,13 +35,12 @@ pub fn instantiate(
         owner: deps.api.addr_canonicalize(&msg.owner)?,
         overseer_contract: deps.api.addr_canonicalize(&msg.overseer_contract)?,
         collateral_token: deps.api.addr_canonicalize(&msg.collateral_token)?,
-        market_contract: deps.api.addr_canonicalize(&msg.market_contract)?,
         reward_contract: deps.api.addr_canonicalize(&msg.reward_contract)?,
-        liquidation_contract: deps.api.addr_canonicalize(&msg.liquidation_contract)?,
         stable_denom: msg.stable_denom,
         basset_info: msg.basset_info,
         swap_contract: deps.api.addr_canonicalize(&msg.swap_contract)?,
         swap_denoms: msg.swap_denoms,
+        orcale_contract: deps.api.addr_canonicalize(&msg.oracle_contract)?,
     };
 
     store_config(deps.storage, &config)?;
@@ -59,14 +59,12 @@ pub fn execute(
         ExecuteMsg::Receive(msg) => receive_cw20(deps, info, msg),
         ExecuteMsg::UpdateConfig {
             owner,
-            liquidation_contract,
         } => {
             let api = deps.api;
             update_config(
                 deps,
                 info,
                 optional_addr_validate(api, owner)?,
-                optional_addr_validate(api, liquidation_contract)?,
             )
         }
         ExecuteMsg::LockCollateral { borrower, amount } => {
@@ -85,10 +83,19 @@ pub fn execute(
             liquidator,
             borrower,
             amount,
+            total_borrow_amount,
         } => {
             let liquidator_addr = deps.api.addr_validate(&liquidator)?;
             let borrower_addr = deps.api.addr_validate(&borrower)?;
-            liquidate_collateral(deps, info, liquidator_addr, borrower_addr, amount)
+            liquidate_collateral(
+                deps,
+                env,
+                info,
+                liquidator_addr,
+                borrower_addr,
+                amount,
+                total_borrow_amount,
+            )
         }
         ExecuteMsg::UpdateSwapContract {
             swap_contract,
@@ -116,8 +123,10 @@ pub fn reply(deps: DepsMut, env: Env, msg: Reply) -> Result<Response, ContractEr
     match msg.id {
         // ClaimRewards callback
         CLAIM_REWARDS_OPERATION => swap_to_stable_denom(deps, env),
-        // Swap to stable callback
-        SWAP_TO_STABLE_OPERATION => distribute_hook(deps, env),
+       // Swap to stable callback
+        SWAP_TO_STABLE_OPERATION => swap_to_market_stable_denom(deps, env),
+        // Swap to market stable callback
+        SWAP_TO_MARKET_STABLE_OPERATION => distribute_hook(deps, env),
         _ => Err(ContractError::InvalidReplyId {}),
     }
 }
@@ -148,7 +157,6 @@ pub fn update_config(
     deps: DepsMut,
     info: MessageInfo,
     owner: Option<Addr>,
-    liquidation_contract: Option<Addr>,
 ) -> Result<Response, ContractError> {
     let mut config: Config = read_config(deps.storage)?;
 
@@ -159,11 +167,7 @@ pub fn update_config(
     if let Some(owner) = owner {
         config.owner = deps.api.addr_canonicalize(owner.as_str())?;
     }
-
-    if let Some(liquidation_contract) = liquidation_contract {
-        config.liquidation_contract = deps.api.addr_canonicalize(liquidation_contract.as_str())?;
-    }
-
+    
     store_config(deps.storage, &config)?;
     Ok(Response::new().add_attributes(vec![attr("action", "update_config")]))
 }
@@ -196,16 +200,13 @@ pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
             .api
             .addr_humanize(&config.overseer_contract)?
             .to_string(),
-        market_contract: deps.api.addr_humanize(&config.market_contract)?.to_string(),
+
         reward_contract: deps.api.addr_humanize(&config.reward_contract)?.to_string(),
-        liquidation_contract: deps
-            .api
-            .addr_humanize(&config.liquidation_contract)?
-            .to_string(),
         stable_denom: config.stable_denom,
         basset_info: config.basset_info,
         swap_contract: Option::from(deps.api.addr_humanize(&config.swap_contract)?.to_string()),
         swap_denoms: Option::from(config.swap_denoms),
+        oracle_contract: deps.api.addr_humanize(&config.orcale_contract)?.to_string(),
     })
 }
 

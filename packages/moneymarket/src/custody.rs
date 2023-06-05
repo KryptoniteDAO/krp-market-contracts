@@ -25,6 +25,7 @@ pub struct InstantiateMsg {
     pub basset_info: BAssetInfo,
     pub swap_contract: String,
     pub swap_denoms: Vec<String>,
+    pub oracle_contract: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -40,7 +41,6 @@ pub enum ExecuteMsg {
     /// Update config
     UpdateConfig {
         owner: Option<String>,
-        liquidation_contract: Option<String>,
     },
     /// Make specified amount of tokens unspendable
     LockCollateral { borrower: String, amount: Uint256 },
@@ -55,6 +55,7 @@ pub enum ExecuteMsg {
         liquidator: String,
         borrower: String,
         amount: Uint256,
+        total_borrow_amount: Uint256, 
     },
 
     ////////////////////
@@ -65,8 +66,8 @@ pub enum ExecuteMsg {
     /// If the amount is not given,
     /// return all spendable collateral
     WithdrawCollateral {
-        borrower: String,
-        amount: Option<Uint256>,
+        borrower: String, 
+        amount: Option<Uint256> 
     },
 
     UpdateSwapContract {
@@ -108,13 +109,12 @@ pub struct ConfigResponse {
     pub owner: String,
     pub collateral_token: String,
     pub overseer_contract: String,
-    pub market_contract: String,
     pub reward_contract: String,
-    pub liquidation_contract: String,
     pub stable_denom: String,
     pub basset_info: BAssetInfo,
     pub swap_contract: Option<String>,
     pub swap_denoms: Option<Vec<String>>,
+    pub oracle_contract: String,
 }
 
 // We define a custom struct for each query response

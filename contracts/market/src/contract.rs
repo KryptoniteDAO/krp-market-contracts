@@ -20,12 +20,12 @@ use cw20::{Cw20Coin, Cw20ReceiveMsg, MinterResponse};
 
 use moneymarket::common::optional_addr_validate;
 use moneymarket::interest_model::BorrowRateResponse;
+use moneymarket::market::TokenInstantiateMsg;
 use moneymarket::market::{
     ConfigResponse, Cw20HookMsg, EpochStateResponse, ExecuteMsg, InstantiateMsg, MigrateMsg,
     QueryMsg, StateResponse,
 };
 use moneymarket::querier::{deduct_tax, query_balance, query_supply};
-use moneymarket::terraswap::InstantiateMsg as TokenInstantiateMsg;
 use protobuf::Message;
 
 pub const INITIAL_DEPOSIT_AMOUNT: u128 = 1000000;
@@ -62,7 +62,10 @@ pub fn instantiate(
             distribution_model: CanonicalAddr::from(vec![]),
             collector_contract: CanonicalAddr::from(vec![]),
             distributor_contract: CanonicalAddr::from(vec![]),
+            liquidation_contract: CanonicalAddr::from(vec![]),
+            oracle_contract: CanonicalAddr::from(vec![]),
             stable_denom: msg.stable_denom.clone(),
+            stable_name: msg.stable_name.clone(),
             max_borrow_factor: msg.max_borrow_factor,
         },
     )?;
@@ -76,7 +79,7 @@ pub fn instantiate(
             last_reward_updated: env.block.height,
             global_interest_index: Decimal256::one(),
             global_reward_index: Decimal256::zero(),
-            anc_emission_rate: msg.anc_emission_rate,
+            krp_emission_rate: msg.krp_emission_rate,
             prev_atoken_supply: Uint256::zero(),
             prev_exchange_rate: Decimal256::one(),
         },
@@ -91,13 +94,15 @@ pub fn instantiate(
             funds: vec![],
             label: "Kryptonite stable coin share".to_string(),
             msg: to_binary(&TokenInstantiateMsg {
-                //name: format!("Kryptonite stable coin share", msg.stable_denom[1..].to_uppercase()),
-                name: "Kryptonite stable coin share".to_string(),
-                // symbol: format!(
-                //     "a{}T",
-                //     msg.stable_denom[1..(msg.stable_denom.len() - 1)].to_uppercase()
-                // ),
-                symbol: "kUSD".to_string(),
+                name: format!(
+                    "Kryptonite stable coin {} share",
+                    msg.stable_name[0..].to_uppercase()
+                ),
+                symbol: format!(
+                    "a{}",
+                    msg.stable_name[0..].to_uppercase()
+                ),
+
                 decimals: 6u8,
                 initial_balances: vec![Cw20Coin {
                     address: env.contract.address.to_string(),
@@ -114,35 +119,6 @@ pub fn instantiate(
     messages.push(inst_aust_msg);
 
     Ok(Response::new().add_submessages(messages))
-    /*
-    Ok(
-        Response::new().add_submessages(vec![SubMsg::reply_on_success(
-            CosmosMsg::Wasm(WasmMsg::Instantiate {
-                admin: None,
-                code_id: msg.aterra_code_id,
-                funds: vec![],
-                label: "aterra".to_string(),
-                msg: to_binary(&TokenInstantiateMsg {
-                    name: format!("Anchor Terra {}", msg.stable_denom[1..].to_uppercase()),
-                    symbol: format!(
-                        "a{}T",
-                        msg.stable_denom[1..(msg.stable_denom.len() - 1)].to_uppercase()
-                    ),
-                    decimals: 6u8,
-                    initial_balances: vec![Cw20Coin {
-                        address: env.contract.address.to_string(),
-                        amount: Uint128::from(INITIAL_DEPOSIT_AMOUNT),
-                    }],
-                    mint: Some(MinterResponse {
-                        minter: env.contract.address.to_string(),
-                        cap: None,
-                    }),
-                })?,
-            }),
-            1,
-        )]),
-    )
-    */
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -160,6 +136,8 @@ pub fn execute(
             distribution_model,
             collector_contract,
             distributor_contract,
+            oracle_contract,
+            liquidation_contract,
         } => {
             let api = deps.api;
             register_contracts(
@@ -169,6 +147,8 @@ pub fn execute(
                 api.addr_validate(&distribution_model)?,
                 api.addr_validate(&collector_contract)?,
                 api.addr_validate(&distributor_contract)?,
+                api.addr_validate(&oracle_contract)?,
+                api.addr_validate(&liquidation_contract)?,
             )
         }
         ExecuteMsg::UpdateConfig {
@@ -314,6 +294,8 @@ pub fn register_contracts(
     distribution_model: Addr,
     collector_contract: Addr,
     distributor_contract: Addr,
+    oracle_contract: Addr,
+    liquidation_contract: Addr,
 ) -> Result<Response, ContractError> {
     let mut config: Config = read_config(deps.storage)?;
     if config.overseer_contract != CanonicalAddr::from(vec![])
@@ -321,6 +303,8 @@ pub fn register_contracts(
         || config.distribution_model != CanonicalAddr::from(vec![])
         || config.collector_contract != CanonicalAddr::from(vec![])
         || config.distributor_contract != CanonicalAddr::from(vec![])
+        || config.oracle_contract != CanonicalAddr::from(vec![])
+        || config.liquidation_contract != CanonicalAddr::from(vec![])
     {
         return Err(ContractError::Unauthorized {});
     }
@@ -330,6 +314,8 @@ pub fn register_contracts(
     config.distribution_model = deps.api.addr_canonicalize(distribution_model.as_str())?;
     config.collector_contract = deps.api.addr_canonicalize(collector_contract.as_str())?;
     config.distributor_contract = deps.api.addr_canonicalize(distributor_contract.as_str())?;
+    config.oracle_contract = deps.api.addr_canonicalize(oracle_contract.as_str())?;
+    config.liquidation_contract = deps.api.addr_canonicalize(liquidation_contract.as_str())?;
 
     store_config(deps.storage, &config)?;
 
@@ -388,13 +374,14 @@ pub fn execute_epoch_operations(
     distributed_interest: Uint256,
 ) -> Result<Response, ContractError> {
     let config: Config = read_config(deps.storage)?;
+    
     if config.overseer_contract != deps.api.addr_canonicalize(info.sender.as_str())? {
         return Err(ContractError::Unauthorized {});
     }
 
     let mut state: State = read_state(deps.storage)?;
 
-    // Compute interest and reward before updating anc_emission_rate
+    // Compute interest and reward before updating krp_emission_rate
     let atoken_supply = query_supply(
         deps.as_ref(),
         deps.api.addr_humanize(&config.atoken_contract)?,
@@ -413,7 +400,7 @@ pub fn execute_epoch_operations(
         state.total_liabilities,
         state.total_reserves,
     )?;
-
+ 
     compute_interest_raw(
         &mut state,
         env.block.height,
@@ -435,20 +422,6 @@ pub fn execute_epoch_operations(
     let total_reserves = state.total_reserves * Uint256::one();
     let messages: Vec<CosmosMsg> = if !total_reserves.is_zero() && balance > total_reserves {
         state.total_reserves = state.total_reserves - Decimal256::from_uint256(total_reserves);
-
-        // vec![
-        //     CosmosMsg::Wasm(WasmMsg::Execute {
-        //         contract_addr: deps.api.addr_humanize(&config.stable_contract)?.to_string(),
-        //         funds : vec![],
-        //         msg: to_binary(&Cw20ExecuteMsg::Transfer {
-        //             recipient: deps.api
-        //                  .addr_humanize(&config.collector_contract)?
-        //                  .to_string(),
-        //             amount: total_reserves.into(),
-        //             })?
-        //         }
-        //     )
-        // ]
         vec![CosmosMsg::Bank(BankMsg::Send {
             to_address: deps
                 .api
@@ -467,11 +440,11 @@ pub fn execute_epoch_operations(
     };
 
     store_state(deps.storage, &state)?;
-
+ 
     Ok(Response::new().add_messages(messages).add_attributes(vec![
         attr("action", "execute_epoch_operations"),
         attr("total_reserves", total_reserves),
-        attr("anc_emission_rate", state.anc_emission_rate.to_string()),
+        attr("krp_emission_rate", state.krp_emission_rate.to_string()),
     ]))
 }
 
@@ -490,11 +463,13 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         )?),
         QueryMsg::BorrowerInfo {
             borrower,
+            is_loan_value,
             block_height,
         } => to_binary(&query_borrower_info(
             deps,
             env,
             deps.api.addr_validate(&borrower)?,
+            is_loan_value,
             block_height,
         )?),
         QueryMsg::BorrowerInfos { start_after, limit } => to_binary(&query_borrower_infos(
@@ -502,7 +477,6 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
             optional_addr_validate(deps.api, start_after)?,
             limit,
         )?),
-        
     }
 }
 
@@ -528,6 +502,11 @@ pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
         distributor_contract: deps
             .api
             .addr_humanize(&config.distributor_contract)?
+            .to_string(),
+        oracle_contract: deps.api.addr_humanize(&config.oracle_contract)?.to_string(),
+        liquidation_contract: deps
+            .api
+            .addr_humanize(&config.liquidation_contract)?
             .to_string(),
         stable_denom: config.stable_denom,
         max_borrow_factor: config.max_borrow_factor,
@@ -567,7 +546,9 @@ pub fn query_state(deps: Deps, env: Env, block_height: Option<u64>) -> StdResult
         total_liabilities: state.total_liabilities,
         total_reserves: state.total_reserves,
         last_interest_updated: state.last_interest_updated,
+        last_reward_updated: state.last_reward_updated,
         global_interest_index: state.global_interest_index,
+        global_reward_index: state.global_reward_index,
         prev_atoken_supply: state.prev_atoken_supply,
         prev_exchange_rate: state.prev_exchange_rate,
     })
@@ -605,8 +586,11 @@ pub fn query_epoch_state(
             state.total_reserves,
         )?;
 
-        let target_deposit_rate: Decimal256 =
-            query_target_deposit_rate(deps, deps.api.addr_humanize(&config.overseer_contract)?)?;
+        let target_deposit_rate: Decimal256 = query_target_deposit_rate(
+            deps,
+            deps.api.addr_humanize(&config.overseer_contract)?,
+            deps.api.addr_humanize(&config.contract_addr)?,
+        )?;
 
         // Compute interest rate to return latest epoch state
         compute_interest_raw(

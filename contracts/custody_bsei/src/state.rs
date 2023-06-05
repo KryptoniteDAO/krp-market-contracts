@@ -20,13 +20,12 @@ pub struct Config {
     pub owner: CanonicalAddr,
     pub collateral_token: CanonicalAddr,
     pub overseer_contract: CanonicalAddr,
-    pub market_contract: CanonicalAddr,
     pub reward_contract: CanonicalAddr,
-    pub liquidation_contract: CanonicalAddr,
     pub stable_denom: String,
     pub basset_info: BAssetInfo,
     pub swap_contract: CanonicalAddr,
     pub swap_denoms: Vec<String>,
+    pub orcale_contract: CanonicalAddr,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

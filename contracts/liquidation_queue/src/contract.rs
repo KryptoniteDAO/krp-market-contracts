@@ -12,13 +12,13 @@ use crate::state::{
     read_collateral_info, read_config, store_collateral_info, store_config, CollateralInfo, Config,
 };
 
-use crate::error::ContractError;
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::{
     from_binary, to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError, StdResult,
 };
 use cw20::Cw20ReceiveMsg;
 use moneymarket::liquidation_queue::{Cw20HookMsg, ExecuteMsg, InstantiateMsg, QueryMsg};
+use crate::error::ContractError;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -44,17 +44,12 @@ pub fn instantiate(
             overseer: deps.api.addr_canonicalize(&msg.overseer)?,
         },
     )?;
-
+   
     Ok(Response::new())
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn execute(
-    deps: DepsMut,
-    env: Env,
-    info: MessageInfo,
-    msg: ExecuteMsg,
-) -> Result<Response, ContractError> {
+pub fn execute(deps: DepsMut, env: Env, info: MessageInfo, msg: ExecuteMsg) ->Result<Response, ContractError>{
     match msg {
         ExecuteMsg::Receive(msg) => receive_cw20(deps, env, info, msg),
         ExecuteMsg::UpdateConfig {
@@ -118,10 +113,7 @@ pub fn execute(
             collateral_denom,
             amount,
         } => {
-            let sender = deps
-                .api
-                .addr_canonicalize(&info.sender.as_str())?
-                .to_string();
+            let sender = deps.api.addr_canonicalize(&info.sender.as_str())?.to_string();
             let collateral_token = collateral_denom;
             execute_liquidation(
                 deps,
@@ -145,7 +137,7 @@ pub fn receive_cw20(
 ) -> Result<Response, ContractError> {
     let contract_addr = info.sender.clone();
     match from_binary(&cw20_msg.msg) {
-        //contract liquidation_queue received collatera token
+       //contract liquidation_queue received collatera token
         Ok(Cw20HookMsg::ExecuteBid {
             liquidator,
             repay_address,
@@ -165,9 +157,8 @@ pub fn receive_cw20(
                 cw20_msg.amount.into(),
             )
         }
-        _ => Err(ContractError::Std(StdError::generic_err(
-            "Nofound Cw20HookMsg",
-        ))),
+        _ => Err(ContractError::Std(StdError::generic_err("Nofound Cw20HookMsg"))),
+
     }
 }
 
@@ -184,10 +175,10 @@ pub fn update_config(
     price_timeframe: Option<u64>,
     waiting_period: Option<u64>,
     overseer: Option<String>,
-) -> Result<Response, ContractError> {
+) ->Result<Response, ContractError> {
     let mut config: Config = read_config(deps.storage)?;
     if deps.api.addr_canonicalize(info.sender.as_str())? != config.owner {
-        return Err(ContractError::Unauthorized {});
+        return Err(ContractError::Unauthorized{});
     }
 
     if let Some(owner) = owner {
@@ -243,23 +234,19 @@ pub fn whitelist_collateral(
     let config: Config = read_config(deps.storage)?;
     let collateral_token_raw = deps.api.addr_canonicalize(&collateral_token)?;
     if deps.api.addr_canonicalize(info.sender.as_str())? != config.owner {
-        return Err(ContractError::Unauthorized {});
+        return Err(ContractError::Unauthorized{});
     }
 
     // fail if the collateral is already whitelisted
     if read_collateral_info(deps.storage, &collateral_token_raw).is_ok() {
-        return Err(ContractError::Std(StdError::generic_err(
-            "Collateral is already whitelisted",
-        )));
+        return Err(ContractError::Std(StdError::generic_err("Collateral is already whitelisted")));
     }
 
     // check if the colalteral is whitelisted in overseer
     let overseer = deps.api.addr_humanize(&config.overseer)?;
     query_collateral_whitelist_info(&deps.querier, overseer.to_string(), collateral_token)
         .map_err(|_| {
-            ContractError::Std(StdError::generic_err(
-                "This collateral is not whitelisted in Anchor overseer",
-            ))
+            ContractError::Std(StdError::generic_err("This collateral is not whitelisted in kryptonite overseer"))
         })?;
 
     // assert max slot does not exceed cap and max premium rate does not exceed 1
@@ -291,7 +278,7 @@ pub fn update_collateral_info(
     let config: Config = read_config(deps.storage)?;
     let collateral_token_raw = deps.api.addr_canonicalize(&collateral_token)?;
     if deps.api.addr_canonicalize(info.sender.as_str())? != config.owner {
-        return Err(ContractError::Unauthorized {});
+        return Err(ContractError::Unauthorized{});
     }
 
     // update collateral info

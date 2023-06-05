@@ -1,15 +1,25 @@
-use cosmwasm_bignumber::Uint256;
-use cosmwasm_std::{attr, to_binary, Addr, BankMsg, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, QueryRequest, Response, StdResult, SubMsg, Uint128, WasmMsg, WasmQuery, ReplyOn};
+use std::ops::Div;
 
-use crate::contract::{CLAIM_REWARDS_OPERATION, SWAP_TO_STABLE_OPERATION};
+use cosmwasm_bignumber::Uint256;
+use cosmwasm_std::{
+    attr, to_binary, Addr, Attribute, BankMsg, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo,
+    QueryRequest, ReplyOn, Response, StdResult, SubMsg, Uint128, WasmMsg, WasmQuery,
+};
+
+use crate::contract::CLAIM_REWARDS_OPERATION;
+use crate::contract::SWAP_TO_STABLE_OPERATION;
+use crate::contract::SWAP_TO_MARKET_STABLE_OPERATION;
 use crate::error::ContractError;
 use crate::external::handle::{RewardContractExecuteMsg, RewardContractQueryMsg};
 use crate::state::{read_config, BSeiAccruedRewardsResponse, Config};
+use cosmwasm_bignumber::Decimal256;
 
-use moneymarket::querier::{deduct_tax, query_balance};
+use moneymarket::oracle::PriceResponse;
+use moneymarket::querier::{
+    deduct_tax, query_balance, query_market_list, query_market_state, query_overseer_config,
+    query_price,
+};
 use moneymarket::swap_ext::SwapExecteMsg;
-//use sei_cosmwasm::{create_swap_msg, Response};
-
 // REWARD_THRESHOLD
 // This value is used as the minimum reward claim amount
 // thus if a user's reward is less than 1 ust do not send the ClaimRewards msg
@@ -52,70 +62,64 @@ pub fn distribute_rewards(
 
 /// Apply swapped reward to global index
 /// Executor: itself
-pub fn distribute_hook(
-    deps: DepsMut,
-    env: Env,
-) -> Result<Response, ContractError> {
+pub fn distribute_hook(deps: DepsMut, env: Env) -> Result<Response, ContractError> {
     let contract_addr = env.contract.address;
     let config: Config = read_config(deps.storage)?;
     let overseer_contract = deps.api.addr_humanize(&config.overseer_contract)?;
 
     // reward_amount = (prev_balance + reward_amount) - prev_balance
     // = (0 + reward_amount) - 0 = reward_amount = balance
-    let reward_amount: Uint256 = query_balance(
-        deps.as_ref(),
-        contract_addr,
-        config.stable_denom.to_string(),
-    )?;
+    let balances = deps.querier.query_all_balances(contract_addr.clone())?;
+
     let resp = Response::new();
     let mut messages: Vec<CosmosMsg> = vec![];
-    if !reward_amount.is_zero() {
-        messages.push(CosmosMsg::Bank(BankMsg::Send {
-            to_address: overseer_contract.to_string(),
-            amount: vec![deduct_tax(
-                deps.as_ref(),
-                Coin {
-                    denom: config.stable_denom,
-                    amount: reward_amount.into(),
-                },
-            )?],
-        }));
+    let mut attrs: Vec<Attribute> = Vec::new();
+    for coin in balances {
+        if !coin.amount.is_zero() {
+            messages.push(CosmosMsg::Bank(BankMsg::Send {
+                to_address: overseer_contract.to_string(),
+                amount: vec![deduct_tax(
+                    deps.as_ref(),
+                    Coin {
+                        denom: coin.denom.clone(),
+                        amount: coin.amount.into(),
+                    },
+                )?],
+            }));
+        }
+
+        attrs.push(attr("buffer_rewards_denom", coin.denom.clone()));
+        attrs.push(attr("buffer_rewards_amount", coin.amount));
     }
 
-    Ok(resp.add_messages(messages).add_attributes(vec![
-        attr("action", "distribute_rewards"),
-        attr("buffer_rewards", reward_amount),
-    ]))
+    //Ok(resp.add_messages(messages).add_attributes(attrs))
+    Ok(resp.add_attribute("action", "distribute_hook").add_attributes(attrs))
 }
 
 /// Swap all coins to stable_denom
 /// and execute `swap_hook`
 /// Executor: itself
-pub fn swap_to_stable_denom(
-    deps: DepsMut,
-    env: Env,
-) -> Result<Response, ContractError> {
+pub fn swap_to_stable_denom(deps: DepsMut, env: Env) -> Result<Response, ContractError> {
     let config: Config = read_config(deps.storage)?;
 
     let contract_addr = env.contract.address.clone();
-
     // --------------------- add swap start --------------------------
     let balances = deps.querier.query_all_balances(contract_addr)?;
-    let swap_denoms = config.swap_denoms.clone();
     let reward_denom = config.stable_denom.clone();
     let swap_addr = deps.api.addr_humanize(&config.swap_contract)?;
-    let reward_addr = deps.api.addr_humanize(&config.reward_contract)?;
+   
 
     let mut messages: Vec<SubMsg> = Vec::new();
     for coin in balances {
-        if !swap_denoms.contains(&coin.denom) {
+        if coin.denom == config.stable_denom {
             continue;
         }
+
         if coin.amount > Uint128::zero() {
             let swap_msg = SwapExecteMsg::SwapDenom {
                 from_coin: coin.clone(),
                 target_denom: reward_denom.clone(),
-                to_address: Option::from(reward_addr.to_string())
+                to_address: Option::from(env.contract.address.to_string()),
             };
             messages.push(SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
                 contract_addr: swap_addr.clone().to_string(),
@@ -126,23 +130,102 @@ pub fn swap_to_stable_denom(
     }
     // --------------------- add swap end --------------------------
 
-    // let balances: Vec<Coin> = query_all_balances(deps.as_ref(), contract_addr)?;
-    // let mut messages: Vec<SubMsg<Response>> = balances
-    //     .iter()
-    //     .filter(|x| x.denom != config.stable_denom)
-    //     .map(|coin: &Coin| SubMsg::new(create_swap_msg(coin.clone(), config.stable_denom.clone())))
-    //     .collect();
-
     if let Some(last) = messages.last_mut() {
         last.id = SWAP_TO_STABLE_OPERATION;
         last.reply_on = ReplyOn::Success;
     } else {
-        return distribute_hook(deps, env);
+        return swap_to_market_stable_denom(deps, env);
     }
 
     Ok(Response::new()
         .add_submessages(messages)
         .add_attribute("action", "swap_to_stable_denom"))
+}
+
+/// swap custody config stable to market stable
+/// send maket stable denom to overseer contract
+pub(crate) fn swap_to_market_stable_denom(
+    deps: DepsMut,
+    env: Env,
+) -> Result<Response, ContractError> {
+    let config: Config = read_config(deps.storage)?;
+    let overseer_config = query_overseer_config(deps.as_ref(), config.overseer_contract.clone())?;
+    // query marketlist in overseer contract
+    let market_list = query_market_list(deps.as_ref(), config.overseer_contract.clone())?;
+    let swap_addr = deps.api.addr_humanize(&config.swap_contract)?;
+
+    let mut total_markets_loan_value = Decimal256::zero();
+    let mut market_loan_value: Vec<(String, Decimal256)> = Vec::new();
+
+    // query each market's loan and computer the value
+    for elem in market_list.elems {
+        let market_contract = deps.api.addr_canonicalize(elem.market_contract.as_str())?;
+        let market_state = query_market_state(deps.as_ref(), market_contract)?;
+
+        let price: PriceResponse = query_price(
+            deps.as_ref(),
+            deps.api
+                .addr_validate(overseer_config.oracle_contract.clone().as_str())?,
+            elem.stable_denom.to_string(),
+            "".to_string(),
+            None,
+        )?;
+
+        let loan_value = market_state.total_liabilities * price.rate;
+        total_markets_loan_value += loan_value;
+        market_loan_value.push((elem.stable_denom, loan_value));
+    }
+    let reward_denom = config.stable_denom.clone();
+    let contract_addr = env.contract.address.clone();
+    let balances = query_balance(deps.as_ref(), contract_addr.clone(), config.stable_denom)?;
+
+    // Calculate the loan weight of each market, replace the stable coin configured
+    // in the custody with the market stable coin according to this weight,
+    // and send it to the overseer contract.
+    let mut messages: Vec<SubMsg> = vec![];
+    for loan_value_item in market_loan_value {
+        if reward_denom.clone() == loan_value_item.0.clone() {
+            continue;
+        }
+
+        let reward_coin_convert = Decimal256::from_uint256(balances)
+            * loan_value_item.1.div(total_markets_loan_value)
+            * Uint256::one();
+        let coin_convert = Coin {
+            amount: reward_coin_convert.into(),
+            denom: reward_denom.clone(),
+        };
+        let swap_msg = SwapExecteMsg::SwapDenom {
+            from_coin: coin_convert.clone(),
+            target_denom: loan_value_item.0.clone(),
+            to_address: Option::from(contract_addr.clone().to_string()),
+        };
+
+        messages.push(SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: swap_addr.clone().to_string(),
+            msg: to_binary(&swap_msg)?,
+            funds: vec![coin_convert.clone()],
+        })));
+    }
+
+    if let Some(last) = messages.last_mut() {
+        last.id = SWAP_TO_MARKET_STABLE_OPERATION;
+        last.reply_on = ReplyOn::Success;
+    } else {
+        return distribute_hook(deps, env);
+    }
+    
+    let mut attris : Vec<Attribute> = Vec::new();
+    for msg in &messages {
+        let json = to_binary(&msg).unwrap();
+        attris.push(attr(&msg.id.to_string(), String::from_utf8_lossy(&json)));
+    }
+
+    Ok(Response::new()
+        .add_submessages(messages)
+        .add_attribute("action", "swap_to_market_stable_denom")
+        .add_attributes(attris))
+
 }
 
 pub(crate) fn get_accrued_rewards(

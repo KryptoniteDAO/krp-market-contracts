@@ -58,10 +58,6 @@ pub fn query_liquidation_amount(
     let (collaterals_value, total_weight, collateral_weights, max_ltvs) =
         compute_collateral_weights(deps, overseer, &collaterals, &collateral_prices)?;
 
-    // return Ok(LiquidationAmountResponse {
-    //         collaterals: vec![("11234".to_string(), Uint256::from(200000u64))],
-    //     });
-
     // check partial liquidation condition
     let safe_ratio = if collaterals_value <= config.liquidation_threshold {
         Decimal256::zero()
@@ -69,8 +65,9 @@ pub fn query_liquidation_amount(
         config.safe_ratio
     };
 
-    let base_fee_deductor =
-        (Decimal256::one() - config.bid_fee) * (Decimal256::one() - config.liquidator_fee);
+    
+    let base_fee_deductor = (Decimal256::one() - config.bid_fee)
+        * (Decimal256::one() - config.liquidator_fee);
 
     let mut result: Vec<(String, Uint256)> = vec![];
     for (i, collateral) in collaterals.iter().enumerate() {
@@ -111,8 +108,9 @@ pub fn query_liquidation_amount(
             g_x += slot_available_bids;
 
             if g_x > f_x {
-                let nominator =
-                    collateral_borrow_amount - safe_borrow + (discounted_price * prev_x) - prev_g_x;
+                let nominator = collateral_borrow_amount - safe_borrow
+                    + (discounted_price * prev_x)
+                    - prev_g_x;
                 let denominator = price
                     * (((Decimal256::one() - premium_rate) * base_fee_deductor)
                         - (safe_ratio * max_ltv));

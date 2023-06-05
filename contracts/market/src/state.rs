@@ -22,7 +22,10 @@ pub struct Config {
     pub overseer_contract: CanonicalAddr,
     pub collector_contract: CanonicalAddr,
     pub distributor_contract: CanonicalAddr,
+    pub oracle_contract: CanonicalAddr,
+    pub liquidation_contract: CanonicalAddr,
     pub stable_denom: String,
+    pub stable_name: String, 
     pub max_borrow_factor: Decimal256,
 }
 
@@ -34,7 +37,7 @@ pub struct State {
     pub last_reward_updated: u64,
     pub global_interest_index: Decimal256,
     pub global_reward_index: Decimal256,
-    pub anc_emission_rate: Decimal256,
+    pub krp_emission_rate: Decimal256,
     pub prev_atoken_supply: Uint256,
     pub prev_exchange_rate: Decimal256,
 
@@ -108,6 +111,7 @@ pub fn read_borrower_infos(
                 borrower,
                 interest_index: v.interest_index,
                 loan_amount: v.loan_amount,
+                loan_value: None,
             })
         })
         .collect()

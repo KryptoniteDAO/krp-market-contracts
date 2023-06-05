@@ -3,7 +3,7 @@ use cosmwasm_std::{to_binary, Addr, Deps, QueryRequest, StdResult, WasmQuery};
 
 use moneymarket::distribution_model::{AncEmissionRateResponse, QueryMsg as DistributionQueryMsg};
 use moneymarket::interest_model::{BorrowRateResponse, QueryMsg as InterestQueryMsg};
-use moneymarket::overseer::{BorrowLimitResponse, ConfigResponse, QueryMsg as OverseerQueryMsg};
+use moneymarket::overseer::{BorrowLimitResponse, QueryMsg as OverseerQueryMsg, MarketConfigResponse as OverseerMarketConfigResponse };
 
 pub fn query_borrow_rate(
     deps: Deps,
@@ -43,7 +43,7 @@ pub fn query_borrow_limit(
     Ok(borrow_limit)
 }
 
-pub fn query_anc_emission_rate(
+pub fn query_krp_emission_rate(
     deps: Deps,
     distribution_model: Addr,
     deposit_rate: Decimal256,
@@ -65,12 +65,12 @@ pub fn query_anc_emission_rate(
     Ok(anc_emission_rate)
 }
 
-pub fn query_target_deposit_rate(deps: Deps, overseer_contract: Addr) -> StdResult<Decimal256> {
-    let overseer_config: ConfigResponse =
+pub fn query_target_deposit_rate(deps: Deps, overseer_contract: Addr, market_contract: Addr) -> StdResult<Decimal256> {
+    let overseer_market_config: OverseerMarketConfigResponse =
         deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
             contract_addr: overseer_contract.to_string(),
-            msg: to_binary(&OverseerQueryMsg::Config {})?,
+            msg: to_binary(&OverseerQueryMsg::MarketConfig {market_contract: market_contract.to_string()})?,
         }))?;
 
-    Ok(overseer_config.target_deposit_rate)
+    Ok(overseer_market_config.target_deposit_rate)
 }
