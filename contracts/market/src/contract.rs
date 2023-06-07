@@ -99,7 +99,7 @@ pub fn instantiate(
                     msg.stable_name[0..].to_uppercase()
                 ),
                 symbol: format!(
-                    "a{}",
+                    "s{}",
                     msg.stable_name[0..].to_uppercase()
                 ),
 
