@@ -1,3 +1,4 @@
 .idea
 target
 */target
+**/*/deployed_*.json
