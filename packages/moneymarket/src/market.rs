@@ -13,8 +13,8 @@ pub struct InstantiateMsg {
     pub stable_denom: String,
     /// Kryptonite token code ID used to instantiate
     pub atoken_code_id: u64,
-    /// Anchor token distribution speed
-    pub anc_emission_rate: Decimal256,
+    /// Kryptonite token distribution speed
+    pub kpt_emission_rate: Decimal256,
     /// Maximum allowed borrow rate over deposited stable balance
     pub max_borrow_factor: Decimal256,
 }
@@ -31,7 +31,7 @@ pub enum ExecuteMsg {
     RegisterContracts {
         overseer_contract: String,
         /// The contract has the logics for
-        /// Anchor borrow interest rate
+        /// Kryptonite borrow interest rate
         interest_model: String,
         /// The contract has the logics for
         /// ANC distribution speed
@@ -61,7 +61,7 @@ pub enum ExecuteMsg {
 
     /// Execute epoch operations
     /// 1. send reserve to collector contract
-    /// 2. update anc_emission_rate state
+    /// 2. update kpt_emission_rate state
     ExecuteEpochOperations {
         deposit_rate: Decimal256,
         target_deposit_rate: Decimal256,

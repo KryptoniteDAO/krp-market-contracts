@@ -44,7 +44,7 @@
               "type": "string"
             },
             "interest_model": {
-              "description": "The contract has the logics for Anchor borrow interest rate",
+              "description": "The contract has the logics for Kryptonite borrow interest rate",
               "type": "string"
             },
             "overseer_contract": {
@@ -124,7 +124,7 @@
       "additionalProperties": false
     },
     {
-      "description": "Execute epoch operations 1. send reserve to collector contract 2. update anc_emission_rate state",
+      "description": "Execute epoch operations 1. send reserve to collector contract 2. update kpt_emission_rate state",
       "type": "object",
       "required": [
         "execute_epoch_operations"

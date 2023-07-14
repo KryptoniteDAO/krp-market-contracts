@@ -3,15 +3,15 @@
   "title": "InstantiateMsg",
   "type": "object",
   "required": [
-    "anc_emission_rate",
+    "kpt_emission_rate",
     "atoken_code_id",
     "max_borrow_factor",
     "owner_addr",
     "stable_denom"
   ],
   "properties": {
-    "anc_emission_rate": {
-      "description": "Anchor token distribution speed",
+    "kpt_emission_rate": {
+      "description": "kryptonite token distribution speed",
       "allOf": [
         {
           "$ref": "#/definitions/Decimal256"

@@ -43,7 +43,7 @@ pub fn query_borrow_limit(
     Ok(borrow_limit)
 }
 
-pub fn query_anc_emission_rate(
+pub fn query_kpt_emission_rate(
     deps: Deps,
     distribution_model: Addr,
     deposit_rate: Decimal256,
@@ -51,7 +51,7 @@ pub fn query_anc_emission_rate(
     threshold_deposit_rate: Decimal256,
     current_emission_rate: Decimal256,
 ) -> StdResult<AncEmissionRateResponse> {
-    let anc_emission_rate: AncEmissionRateResponse =
+    let kpt_emission_rate: AncEmissionRateResponse =
         deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
             contract_addr: distribution_model.to_string(),
             msg: to_binary(&DistributionQueryMsg::AncEmissionRate {
@@ -62,7 +62,7 @@ pub fn query_anc_emission_rate(
             })?,
         }))?;
 
-    Ok(anc_emission_rate)
+    Ok(kpt_emission_rate)
 }
 
 pub fn query_target_deposit_rate(deps: Deps, overseer_contract: Addr) -> StdResult<Decimal256> {

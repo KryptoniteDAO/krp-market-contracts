@@ -258,7 +258,7 @@ pub fn whitelist_collateral(
     query_collateral_whitelist_info(&deps.querier, overseer.to_string(), collateral_token)
         .map_err(|_| {
             ContractError::Std(StdError::generic_err(
-                "This collateral is not whitelisted in Anchor overseer",
+                "This collateral is not whitelisted in kryptonite overseer",
             ))
         })?;
 

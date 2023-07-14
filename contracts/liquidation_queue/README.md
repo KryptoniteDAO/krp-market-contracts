@@ -1,6 +1,6 @@
 # Liquidation Queue
 
-**NOTE**: Reference documentation for this contract is available [here](https://docs.anchorprotocol.com/smart-contracts/liquidations/liquidation-queue-contract).
+**NOTE**: Reference documentation for this contract is available [here](https://docs.kryptonite.finance/smart-contracts/liquidations/liquidation-queue-contract).
 
 The Liquidation contract enables users to submit Terra stablecoin bids for a Cw20-compliant token. Bidders can submit a bid to one of the bid pools; each of the pools deposited funds are used to buy the liquidated collateral at different discount rates. There are 31 slots per collateral, from 0% to 30%; users can bid on one or more slots.
 Upon execution of a bid, Cw20 tokens are sent to the bidder, while the bidder's Terra stablecoins are sent to the repay address (if not specified, sent to message sender). A portion of the collateral value liquidated will be given to the address triggering the liquidation (liquidator_fee).

@@ -1,0 +1,12 @@
+{
+  "oraclePyth": {
+    "codeId": 1261,
+    "address": "sei1sh7slrk9aywe2rcaf39cd3zvdy8phw0fmdna9hhu7utw33vgwk4qjeunmt"
+  },
+  "aToken": {
+    "codeId": 1262
+  },
+  "market": {
+    "codeId": 1263
+  }
+}

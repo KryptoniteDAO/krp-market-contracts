@@ -76,7 +76,7 @@ pub fn instantiate(
             last_reward_updated: env.block.height,
             global_interest_index: Decimal256::one(),
             global_reward_index: Decimal256::zero(),
-            anc_emission_rate: msg.anc_emission_rate,
+            kpt_emission_rate: msg.kpt_emission_rate,
             prev_atoken_supply: Uint256::zero(),
             prev_exchange_rate: Decimal256::one(),
         },
@@ -114,35 +114,7 @@ pub fn instantiate(
     messages.push(inst_aust_msg);
 
     Ok(Response::new().add_submessages(messages))
-    /*
-    Ok(
-        Response::new().add_submessages(vec![SubMsg::reply_on_success(
-            CosmosMsg::Wasm(WasmMsg::Instantiate {
-                admin: None,
-                code_id: msg.aterra_code_id,
-                funds: vec![],
-                label: "aterra".to_string(),
-                msg: to_binary(&TokenInstantiateMsg {
-                    name: format!("Anchor Terra {}", msg.stable_denom[1..].to_uppercase()),
-                    symbol: format!(
-                        "a{}T",
-                        msg.stable_denom[1..(msg.stable_denom.len() - 1)].to_uppercase()
-                    ),
-                    decimals: 6u8,
-                    initial_balances: vec![Cw20Coin {
-                        address: env.contract.address.to_string(),
-                        amount: Uint128::from(INITIAL_DEPOSIT_AMOUNT),
-                    }],
-                    mint: Some(MinterResponse {
-                        minter: env.contract.address.to_string(),
-                        cap: None,
-                    }),
-                })?,
-            }),
-            1,
-        )]),
-    )
-    */
+   
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -394,7 +366,7 @@ pub fn execute_epoch_operations(
 
     let mut state: State = read_state(deps.storage)?;
 
-    // Compute interest and reward before updating anc_emission_rate
+    // Compute interest and reward before updating kpt_emission_rate
     let atoken_supply = query_supply(
         deps.as_ref(),
         deps.api.addr_humanize(&config.atoken_contract)?,
@@ -471,7 +443,7 @@ pub fn execute_epoch_operations(
     Ok(Response::new().add_messages(messages).add_attributes(vec![
         attr("action", "execute_epoch_operations"),
         attr("total_reserves", total_reserves),
-        attr("anc_emission_rate", state.anc_emission_rate.to_string()),
+        attr("kpt_emission_rate", state.kpt_emission_rate.to_string()),
     ]))
 }
 

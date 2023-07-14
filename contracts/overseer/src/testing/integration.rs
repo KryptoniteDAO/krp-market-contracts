@@ -243,7 +243,7 @@
 //         owner_addr: owner.to_string(),
 //         stable_denom: "uusd".to_string(),
 //         atoken_code_id: token_code_id,
-//         anc_emission_rate: Decimal256::one(),
+//         kpt_emission_rate: Decimal256::one(),
 //         max_borrow_factor: Decimal256::one(),
 //     };
 //     let market_addr = app

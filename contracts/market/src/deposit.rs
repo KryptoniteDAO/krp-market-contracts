@@ -44,7 +44,7 @@ pub fn deposit_stable(
 
     compute_reward(&mut state, env.block.height);
 
-    // Load anchor token exchange rate with updated state
+    // Load kryptonite token exchange rate with updated state
     let exchange_rate =
         compute_exchange_rate(deps.as_ref(), &config, &state, Some(deposit_amount))?;
     let mint_amount = deposit_amount / exchange_rate;
@@ -77,7 +77,7 @@ pub fn deposit_stable(
             //     state.global_interest_index.to_string(),
             // ),
             // attr("global_reward_index", state.global_reward_index.to_string()),
-            // attr("anc_emission_rate", state.anc_emission_rate.to_string()),
+            // attr("kpt_emission_rate", state.kpt_emission_rate.to_string()),
             // attr("prev_atoken_supply", state.prev_atoken_supply.to_string()),
             // attr("prev_exchange_rate", state.prev_exchange_rate.to_string()),
             // attr("contract_balance", state.contract_balance.to_string()),
@@ -105,7 +105,7 @@ pub fn redeem_stable(
     compute_interest(deps.as_ref(), &config, &mut state, env.block.height, None)?;
     compute_reward(&mut state, env.block.height);
 
-    // Load anchor token exchange rate with updated state
+    // Load kryptonite token exchange rate with updated state
     let exchange_rate = compute_exchange_rate(deps.as_ref(), &config, &state, None)?;
     let redeem_amount = Uint256::from(burn_amount) * exchange_rate;
 

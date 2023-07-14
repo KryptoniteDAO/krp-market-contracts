@@ -3,7 +3,7 @@
   "title": "State",
   "type": "object",
   "required": [
-    "anc_emission_rate",
+    "kpt_emission_rate",
     "global_interest_index",
     "global_reward_index",
     "last_interest_updated",
@@ -14,7 +14,7 @@
     "total_reserves"
   ],
   "properties": {
-    "anc_emission_rate": {
+    "kpt_emission_rate": {
       "$ref": "#/definitions/Decimal256"
     },
     "global_interest_index": {
