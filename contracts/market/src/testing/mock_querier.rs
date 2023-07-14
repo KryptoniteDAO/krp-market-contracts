@@ -264,7 +264,7 @@ impl WasmMockQuerier {
                             threshold_deposit_rate: Decimal256::one(),
                             target_deposit_rate: Decimal256::from_ratio(1, 100),
                             buffer_distribution_factor: Decimal256::one(),
-                            anc_purchase_factor: Decimal256::one(),
+                            kpt_purchase_factor: Decimal256::one(),
                             stable_denom: "uusd".to_string(),
                             epoch_period: 100u64,
                             price_timeframe: 100u64,

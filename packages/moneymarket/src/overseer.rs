@@ -32,7 +32,7 @@ pub struct InstantiateMsg {
     /// Ratio to be distributed from the interest buffer
     pub buffer_distribution_factor: Decimal256,
     /// Ratio to be used for purchasing ANC token from the interest buffer
-    pub anc_purchase_factor: Decimal256,
+    pub kpt_purchase_factor: Decimal256,
     /// Valid oracle price timeframe
     pub price_timeframe: u64,
     /// # of blocks per each dynamic rate change period
@@ -66,7 +66,7 @@ pub enum ExecuteMsg {
         threshold_deposit_rate: Option<Decimal256>,
         target_deposit_rate: Option<Decimal256>,
         buffer_distribution_factor: Option<Decimal256>,
-        anc_purchase_factor: Option<Decimal256>,
+        kpt_purchase_factor: Option<Decimal256>,
         epoch_period: Option<u64>,
         price_timeframe: Option<u64>,
         dyn_rate_epoch: Option<u64>,
@@ -161,7 +161,7 @@ pub struct ConfigResponse {
     pub threshold_deposit_rate: Decimal256,
     pub target_deposit_rate: Decimal256,
     pub buffer_distribution_factor: Decimal256,
-    pub anc_purchase_factor: Decimal256,
+    pub kpt_purchase_factor: Decimal256,
     pub stable_denom: String,
     pub epoch_period: u64,
     pub price_timeframe: u64,

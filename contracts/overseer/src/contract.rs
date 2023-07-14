@@ -53,7 +53,7 @@ pub fn instantiate(
             threshold_deposit_rate: msg.threshold_deposit_rate,
             target_deposit_rate: msg.target_deposit_rate,
             buffer_distribution_factor: msg.buffer_distribution_factor,
-            anc_purchase_factor: msg.anc_purchase_factor,
+            kpt_purchase_factor: msg.kpt_purchase_factor,
             price_timeframe: msg.price_timeframe,
         },
     )?;
@@ -111,7 +111,7 @@ pub fn execute(
             threshold_deposit_rate,
             target_deposit_rate,
             buffer_distribution_factor,
-            anc_purchase_factor,
+            kpt_purchase_factor,
             epoch_period,
             price_timeframe,
             dyn_rate_epoch,
@@ -130,7 +130,7 @@ pub fn execute(
                 threshold_deposit_rate,
                 target_deposit_rate,
                 buffer_distribution_factor,
-                anc_purchase_factor,
+                kpt_purchase_factor,
                 epoch_period,
                 price_timeframe,
                 dyn_rate_epoch,
@@ -206,7 +206,7 @@ pub fn update_config(
     threshold_deposit_rate: Option<Decimal256>,
     target_deposit_rate: Option<Decimal256>,
     buffer_distribution_factor: Option<Decimal256>,
-    anc_purchase_factor: Option<Decimal256>,
+    kpt_purchase_factor: Option<Decimal256>,
     epoch_period: Option<u64>,
     price_timeframe: Option<u64>,
     dyn_rate_epoch: Option<u64>,
@@ -244,8 +244,8 @@ pub fn update_config(
         config.buffer_distribution_factor = buffer_distribution_factor;
     }
 
-    if let Some(anc_purchase_factor) = anc_purchase_factor {
-        config.anc_purchase_factor = anc_purchase_factor;
+    if let Some(kpt_purchase_factor) = kpt_purchase_factor {
+        config.kpt_purchase_factor = kpt_purchase_factor;
     }
 
     if let Some(target_deposit_rate) = target_deposit_rate {
@@ -480,9 +480,9 @@ pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<Response, Con
         config.stable_denom.to_string(),
     )?;
 
-    // Send accrued_buffer * config.anc_purchase_factor amount stable token to collector
+    // Send accrued_buffer * config.kpt_purchase_factor amount stable token to collector
     let accrued_buffer = interest_buffer - state.prev_interest_buffer;
-    let anc_purchase_amount = accrued_buffer * config.anc_purchase_factor;
+    let anc_purchase_amount = accrued_buffer * config.kpt_purchase_factor;
     if !anc_purchase_amount.is_zero() {
         messages.push(CosmosMsg::Bank(BankMsg::Send {
             to_address: deps
@@ -725,7 +725,7 @@ pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
         threshold_deposit_rate: config.threshold_deposit_rate,
         target_deposit_rate: config.target_deposit_rate,
         buffer_distribution_factor: config.buffer_distribution_factor,
-        anc_purchase_factor: config.anc_purchase_factor,
+        kpt_purchase_factor: config.kpt_purchase_factor,
         price_timeframe: config.price_timeframe,
         dyn_rate_epoch: dynrate_config.dyn_rate_epoch,
         dyn_rate_maxchange: dynrate_config.dyn_rate_maxchange,

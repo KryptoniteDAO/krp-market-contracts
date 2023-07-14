@@ -12,7 +12,7 @@
         "update_config": {
           "type": "object",
           "properties": {
-            "anc_purchase_factor": {
+            "kpt_purchase_factor": {
               "anyOf": [
                 {
                   "$ref": "#/definitions/Decimal256"

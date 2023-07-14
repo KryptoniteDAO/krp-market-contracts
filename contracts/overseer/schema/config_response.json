@@ -3,7 +3,7 @@
   "title": "ConfigResponse",
   "type": "object",
   "required": [
-    "anc_purchase_factor",
+    "kpt_purchase_factor",
     "buffer_distribution_factor",
     "collector_contract",
     "dyn_rate_epoch",
@@ -22,7 +22,7 @@
     "threshold_deposit_rate"
   ],
   "properties": {
-    "anc_purchase_factor": {
+    "kpt_purchase_factor": {
       "$ref": "#/definitions/Decimal256"
     },
     "buffer_distribution_factor": {

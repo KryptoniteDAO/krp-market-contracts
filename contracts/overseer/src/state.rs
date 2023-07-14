@@ -28,7 +28,7 @@ pub struct Config {
     pub threshold_deposit_rate: Decimal256,
     pub target_deposit_rate: Decimal256,
     pub buffer_distribution_factor: Decimal256,
-    pub anc_purchase_factor: Decimal256,
+    pub kpt_purchase_factor: Decimal256,
     pub price_timeframe: u64,
 }
 

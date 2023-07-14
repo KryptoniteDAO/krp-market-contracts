@@ -28,7 +28,7 @@ fn proper_compute_borrow_limit() {
         threshold_deposit_rate: Decimal256::permille(3),
         target_deposit_rate: Decimal256::permille(5),
         buffer_distribution_factor: Decimal256::percent(20),
-        anc_purchase_factor: Decimal256::percent(20),
+        kpt_purchase_factor: Decimal256::percent(20),
         price_timeframe: 60u64,
         dyn_rate_epoch: 86400u64,
         dyn_rate_maxchange: Decimal256::from_str("0.03").unwrap(),

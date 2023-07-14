@@ -269,7 +269,7 @@
 //         threshold_deposit_rate: Decimal256::permille(3),
 //         target_deposit_rate: Decimal256::permille(5),
 //         buffer_distribution_factor: Decimal256::percent(20),
-//         anc_purchase_factor: Decimal256::percent(20),
+//         kpt_purchase_factor: Decimal256::percent(20),
 //         price_timeframe: 60u64,
 //         dyn_rate_epoch: 8600u64,
 //         dyn_rate_maxchange: Decimal256::permille(5),
