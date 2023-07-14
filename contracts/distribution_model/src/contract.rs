@@ -8,7 +8,7 @@ use crate::state::{read_config, store_config, Config};
 use cosmwasm_bignumber::Decimal256;
 use moneymarket::common::optional_addr_validate;
 use moneymarket::distribution_model::{
-    AncEmissionRateResponse, ConfigResponse, ExecuteMsg, InstantiateMsg, QueryMsg,
+    KptEmissionRateResponse, ConfigResponse, ExecuteMsg, InstantiateMsg, QueryMsg,
 };
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -103,7 +103,7 @@ pub fn update_config(
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
         QueryMsg::Config {} => to_binary(&query_config(deps)?),
-        QueryMsg::AncEmissionRate {
+        QueryMsg::KptEmissionRate {
             deposit_rate,
             target_deposit_rate,
             threshold_deposit_rate,
@@ -137,7 +137,7 @@ fn query_kpt_emission_rate(
     target_deposit_rate: Decimal256,
     threshold_deposit_rate: Decimal256,
     current_emission_rate: Decimal256,
-) -> StdResult<AncEmissionRateResponse> {
+) -> StdResult<KptEmissionRateResponse> {
     let config: Config = read_config(deps.storage)?;
 
     let half_dec = Decimal256::one() + Decimal256::one();
@@ -161,5 +161,5 @@ fn query_kpt_emission_rate(
         emission_rate
     };
 
-    Ok(AncEmissionRateResponse { emission_rate })
+    Ok(KptEmissionRateResponse { emission_rate })
 }

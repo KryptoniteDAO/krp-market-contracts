@@ -11,7 +11,7 @@ use cosmwasm_storage::to_length_prefixed;
 use std::collections::HashMap;
 
 use cw20::TokenInfoResponse;
-use moneymarket::distribution_model::AncEmissionRateResponse;
+use moneymarket::distribution_model::KptEmissionRateResponse;
 use moneymarket::interest_model::BorrowRateResponse;
 use moneymarket::overseer::{BorrowLimitResponse, ConfigResponse};
 use sei_cosmwasm::{SeiQuery, SeiQueryWrapper, SeiRoute};
@@ -31,7 +31,7 @@ pub enum QueryMsg {
         block_time: Option<u64>,
     },
     /// Query ANC emission rate to distribution model contract
-    AncEmissionRate {
+    KptEmissionRate {
         deposit_rate: Decimal256,
         target_deposit_rate: Decimal256,
         threshold_deposit_rate: Decimal256,
@@ -244,13 +244,13 @@ impl WasmMockQuerier {
                             request: msg.as_slice().into(),
                         }),
                     },
-                    QueryMsg::AncEmissionRate {
+                    QueryMsg::KptEmissionRate {
                         deposit_rate: _,
                         target_deposit_rate: _,
                         threshold_deposit_rate: _,
                         current_emission_rate: _,
                     } => SystemResult::Ok(ContractResult::from(to_binary(
-                        &AncEmissionRateResponse {
+                        &KptEmissionRateResponse {
                             emission_rate: Decimal256::from_uint256(5u64),
                         },
                     ))),
