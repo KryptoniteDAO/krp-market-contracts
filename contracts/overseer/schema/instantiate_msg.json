@@ -23,7 +23,7 @@
   ],
   "properties": {
     "kpt_purchase_factor": {
-      "description": "Ratio to be used for purchasing ANC token from the interest buffer",
+      "description": "Ratio to be used for purchasing KPT token from the interest buffer",
       "allOf": [
         {
           "$ref": "#/definitions/Decimal256"
@@ -39,7 +39,7 @@
       ]
     },
     "collector_contract": {
-      "description": "Collector contract address which is purchasing ANC token",
+      "description": "Collector contract address which is purchasing KPT token",
       "type": "string"
     },
     "dyn_rate_epoch": {

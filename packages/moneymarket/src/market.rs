@@ -34,11 +34,11 @@ pub enum ExecuteMsg {
         /// Kryptonite borrow interest rate
         interest_model: String,
         /// The contract has the logics for
-        /// ANC distribution speed
+        /// KPT distribution speed
         distribution_model: String,
         /// Collector contract to send all the reserve
         collector_contract: String,
-        /// Faucet contract to drip ANC token to users
+        /// Faucet contract to drip KPT token to users
         distributor_contract: String,
     },
 
@@ -84,7 +84,7 @@ pub enum ExecuteMsg {
     /// Repay stable asset to decrease liability
     RepayStable {},
 
-    /// Claim distributed ANC rewards
+    /// Claim distributed KPT rewards
     ClaimRewards {
         to: Option<String>,
     },

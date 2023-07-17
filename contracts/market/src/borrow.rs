@@ -35,7 +35,7 @@ pub fn borrow_stable(
     compute_interest(deps.as_ref(), &config, &mut state, env.block.height, None)?;
     compute_borrower_interest(&state, &mut liability);
 
-    // Compute ANC reward
+    // Compute KPT reward
     compute_reward(&mut state, env.block.height);
     compute_borrower_reward(&state, &mut liability);
 
@@ -156,7 +156,7 @@ pub fn repay_stable(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
     )?;
     compute_borrower_interest(&state, &mut liability);
 
-    // Compute ANC reward
+    // Compute KPT reward
     compute_reward(&mut state, env.block.height);
     compute_borrower_reward(&state, &mut liability);
 
@@ -221,7 +221,7 @@ pub fn claim_rewards(
     compute_interest(deps.as_ref(), &config, &mut state, env.block.height, None)?;
     compute_borrower_interest(&state, &mut liability);
 
-    // Compute ANC reward
+    // Compute KPT reward
     compute_reward(&mut state, env.block.height);
     compute_borrower_reward(&state, &mut liability);
 

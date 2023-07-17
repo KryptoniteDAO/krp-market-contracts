@@ -15,7 +15,7 @@ pub struct InstantiateMsg {
     pub market_contract: String,
     /// Liquidation model contract address to compute liquidation amount
     pub liquidation_contract: String,
-    /// Collector contract address which is purchasing ANC token
+    /// Collector contract address which is purchasing KPT token
     pub collector_contract: String,
     /// The base denomination used when fetching oracle price,
     /// reward distribution, and borrow
@@ -31,7 +31,7 @@ pub struct InstantiateMsg {
     pub target_deposit_rate: Decimal256,
     /// Ratio to be distributed from the interest buffer
     pub buffer_distribution_factor: Decimal256,
-    /// Ratio to be used for purchasing ANC token from the interest buffer
+    /// Ratio to be used for purchasing KPT token from the interest buffer
     pub kpt_purchase_factor: Decimal256,
     /// Valid oracle price timeframe
     pub price_timeframe: u64,

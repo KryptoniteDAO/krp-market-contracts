@@ -36,11 +36,11 @@
               "type": "string"
             },
             "distribution_model": {
-              "description": "The contract has the logics for ANC distribution speed",
+              "description": "The contract has the logics for KPT distribution speed",
               "type": "string"
             },
             "distributor_contract": {
-              "description": "Faucet contract to drip ANC token to users",
+              "description": "Faucet contract to drip KPT token to users",
               "type": "string"
             },
             "interest_model": {
@@ -210,7 +210,7 @@
       "additionalProperties": false
     },
     {
-      "description": "Claim distributed ANC rewards",
+      "description": "Claim distributed KPT rewards",
       "type": "object",
       "required": [
         "claim_rewards"

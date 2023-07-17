@@ -30,7 +30,7 @@ pub enum QueryMsg {
         borrower: String,
         block_time: Option<u64>,
     },
-    /// Query ANC emission rate to distribution model contract
+    /// Query KPT emission rate to distribution model contract
     KptEmissionRate {
         deposit_rate: Decimal256,
         target_deposit_rate: Decimal256,
