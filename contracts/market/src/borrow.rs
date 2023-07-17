@@ -68,9 +68,7 @@ pub fn borrow_stable(
 
     store_state(deps.storage, &state)?;
     store_borrower_info(deps.storage, &borrower_raw, &liability)?;
-    // return Err(ContractError::Std(StdError::generic_err(format!(
-    //     "current balance: {}, borrow_amount:{}, liability.loan_amount:{}, state.total_liabilities:{}",
-    //     current_balance, borrow_amount, liability.loan_amount, state.total_liabilities))));
+
     Ok(Response::new()
         .add_message(CosmosMsg::Bank(BankMsg::Send {
             to_address: to.unwrap_or_else(|| borrower.clone()).to_string(),

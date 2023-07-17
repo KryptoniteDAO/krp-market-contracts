@@ -385,10 +385,6 @@ pub fn execute_liquidation(
     let liquidator_fee = repay_amount * config.liquidator_fee;
     let repay_amount = repay_amount - bid_fee - liquidator_fee;
 
-    //  return Err(ContractError::Std(StdError::generic_err(
-    //      format!("execute liquidations transger transfer repay_amount:{}; bid_fee:{};liquidator_fee:{}",
-    //      repay_address, fee_address, liquidator)
-    //  )));
 
     let mut messages: Vec<CosmosMsg> = vec![CosmosMsg::Bank(BankMsg::Send {
         to_address: repay_address,
@@ -425,10 +421,7 @@ pub fn execute_liquidation(
             )?],
         }));
     }
-    //    return Err(ContractError::Std(StdError::generic_err(
-    //          format!("execute liquidations transger transfer repay_amount:{}; bid_fee:{};liquidator_fee:{}",
-    //          repay_amount, bid_fee, liquidator_fee)
-    //      )));
+
 
     Ok(Response::new().add_messages(messages).add_attributes(vec![
         attr("action", "execute_bid"),

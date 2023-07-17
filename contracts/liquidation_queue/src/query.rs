@@ -58,10 +58,6 @@ pub fn query_liquidation_amount(
     let (collaterals_value, total_weight, collateral_weights, max_ltvs) =
         compute_collateral_weights(deps, overseer, &collaterals, &collateral_prices)?;
 
-    // return Ok(LiquidationAmountResponse {
-    //         collaterals: vec![("11234".to_string(), Uint256::from(200000u64))],
-    //     });
-
     // check partial liquidation condition
     let safe_ratio = if collaterals_value <= config.liquidation_threshold {
         Decimal256::zero()
