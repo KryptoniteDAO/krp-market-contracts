@@ -694,7 +694,6 @@ dependencies = [
  "moneymarket-distribution-model",
  "moneymarket-interest-model",
  "moneymarket-market",
- "moneymarket-oracle",
  "moneymarket-overseer",
  "schemars",
  "sei-cosmwasm",
