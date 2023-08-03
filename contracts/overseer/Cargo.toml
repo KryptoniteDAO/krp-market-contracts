@@ -50,7 +50,6 @@ cosmwasm-schema = { version = "1.0.0" }
 cw20-base = { version = "0.16.0", features = ["library"] }
 moneymarket-market = { path = "../market" }
 moneymarket-overseer = { path = "../overseer" }
-#moneymarket-oracle = { path = "../oracle" }
 moneymarket-interest-model = { path = "../interest_model" }
 moneymarket-distribution-model = { path = "../distribution_model" }
 sei-cosmwasm = "0.4.10"
