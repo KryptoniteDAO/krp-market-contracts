@@ -70,3 +70,13 @@ pub fn assert_max_slot_premium(max_slot: u8, premium_rate_per_slot: Decimal256) 
     }
     Ok(())
 }
+
+
+pub fn assert_safe_ratio(safe_ratio: Decimal256) -> StdResult<()> {
+    if safe_ratio > Decimal256::one() {
+        return Err(StdError::generic_err(
+            "The safe ratio can not be greater than one",
+        ));
+    }
+    Ok(())
+}
