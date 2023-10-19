@@ -690,7 +690,10 @@ pub fn update_epoch_state(
 }
 
 pub fn fund_reserve(deps: DepsMut, info: MessageInfo) -> Result<Response, ContractError> {
-    let sent_uusd = match info.funds.iter().find(|x| x.denom == "uusd") {
+
+    let config: Config = read_config(deps.storage)?;
+
+    let sent_uusd = match info.funds.iter().find(|x| x.denom == config.stable_denom) {
         Some(coin) => coin.amount,
         None => Uint128::zero(),
     };
