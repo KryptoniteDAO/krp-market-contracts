@@ -59,11 +59,19 @@ pub fn deposit_collateral(
 /// Executor: overseer contract
 pub fn withdraw_collateral(
     deps: DepsMut,
+    info: MessageInfo, 
     borrower: String,
     amount: Option<Uint256>,
 ) -> Result<Response, ContractError> {
     let config: Config = read_config(deps.storage)?;
-
+    if deps.api.addr_canonicalize(info.sender.as_str())? != config.overseer_contract {
+        return Err(ContractError::Std(StdError::generic_err(format!(
+            "info.sender address: {}  overseer contract address: {}",
+            info.sender.as_str(),
+            config.overseer_contract.to_string()
+        ))));
+    }
+    
     let borrower_raw = deps.api.addr_canonicalize(borrower.as_str())?;
     let mut borrower_info: BorrowerInfo = read_borrower_info(deps.storage, &borrower_raw);
 
