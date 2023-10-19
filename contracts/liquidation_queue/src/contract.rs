@@ -233,14 +233,14 @@ pub fn update_config(
     }
 
     if let Some(bid_fee) = bid_fee {
-        assert_fees(bid_fee + config.liquidator_fee)?;
         config.bid_fee = bid_fee;
     }
 
     if let Some(liquidator_fee) = liquidator_fee {
-        assert_fees(liquidator_fee + config.bid_fee)?;
+        
         config.liquidator_fee = liquidator_fee;
     }
+    assert_fees(config.bid_fee + config.liquidator_fee)?;
 
     if let Some(liquidation_threshold) = liquidation_threshold {
         config.liquidation_threshold = liquidation_threshold;
