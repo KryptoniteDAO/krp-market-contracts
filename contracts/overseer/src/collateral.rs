@@ -239,11 +239,16 @@ pub fn liquidate_collateral(
 pub fn repay_stable_from_yield_reserve(
     deps: DepsMut,
     env: Env,
-    _info: MessageInfo,
+    info: MessageInfo,
     borrower: Addr,
 ) -> Result<Response, ContractError> {
     let config: Config = read_config(deps.storage)?;
     let market = deps.api.addr_humanize(&config.market_contract)?;
+    let owner = deps.api.addr_humanize(&config.owner_addr)?;
+    if info.sender != owner {
+        return Err(ContractError::Unauthorized {});
+    }
+
     let borrow_amount_res: BorrowerInfoResponse = query_borrower_info(
         deps.as_ref(),
         market.clone(),
