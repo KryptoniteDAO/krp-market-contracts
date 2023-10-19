@@ -329,6 +329,10 @@ pub fn register_whitelist(
         return Err(ContractError::Unauthorized {});
     }
 
+    if max_ltv > Decimal256::one() {
+        return Err(ContractError::MaxLtvLimitExceeded{});
+    }
+
     let collateral_token_raw = deps.api.addr_canonicalize(collateral_token.as_str())?;
     if read_whitelist_elem(deps.storage, &collateral_token_raw).is_ok() {
         return Err(ContractError::TokenAlreadyRegistered {});
@@ -366,6 +370,13 @@ pub fn update_whitelist(
     if deps.api.addr_canonicalize(info.sender.as_str())? != config.owner_addr {
         return Err(ContractError::Unauthorized {});
     }
+
+    if let Some(max_ltv) = max_ltv {
+        if max_ltv > Decimal256::one() {
+            return Err(ContractError::MaxLtvLimitExceeded{});
+        }
+    }
+
 
     let collateral_token_raw = deps.api.addr_canonicalize(collateral_token.as_str())?;
     let mut whitelist_elem: WhitelistElem =
