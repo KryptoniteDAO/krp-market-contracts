@@ -7,6 +7,8 @@ use std::convert::TryInto;
 
 static KEY_CONFIG: &[u8] = b"config";
 static KEY_BID_IDX: &[u8] = b"bid_idx";
+static KEY_NEWOWNER: &[u8] = b"newowner";
+
 
 static PREFIX_BID: &[u8] = b"bid";
 static PREFIX_BID_BY_USER: &[u8] = b"bid_by_user";
@@ -14,6 +16,7 @@ static PREFIX_BID_POOL_BY_COLLATERAL: &[u8] = b"bid_pool_by_col";
 static PREFIX_TOTAL_BIDS_BY_COLLATERAL: &[u8] = b"total_bids_by_col";
 static PREFIX_COLLATERAL_INFO: &[u8] = b"col_info";
 static PREFIX_EPOCH_SCALE_SUM: &[u8] = b"epoch_scale_sum";
+
 
 const MAX_LIMIT: u8 = 31;
 const DEFAULT_LIMIT: u8 = 10;
@@ -31,6 +34,20 @@ pub struct Config {
     pub waiting_period: u64,
     pub overseer: CanonicalAddr,
 }
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct NewOwnerAddr {
+    pub new_owner_addr: CanonicalAddr, 
+}
+
+pub fn store_new_owner(storage: &mut dyn Storage, data: &NewOwnerAddr) -> StdResult<()> {
+    singleton(storage, KEY_NEWOWNER).save(data)
+}
+
+pub fn read_new_owner(storage: &dyn Storage) -> StdResult<NewOwnerAddr> {
+    singleton_read(storage, KEY_NEWOWNER).load()
+}
+
 
 pub fn store_config(storage: &mut dyn Storage, config: &Config) -> StdResult<()> {
     singleton(storage, KEY_CONFIG).save(config)

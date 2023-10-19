@@ -9,7 +9,7 @@ use crate::deposit::{compute_exchange_rate_raw, deposit_stable, redeem_stable};
 use crate::error::ContractError;
 use crate::querier::{query_borrow_rate, query_target_deposit_rate};
 use crate::response::MsgInstantiateContractResponse;
-use crate::state::{read_config, read_state, store_config, store_state, Config, State};
+use crate::state::{read_config, read_state, store_config, store_state, read_new_owner, store_new_owner, Config, State, NewOwnerAddr};
 
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::{
@@ -144,7 +144,6 @@ pub fn execute(
             )
         }
         ExecuteMsg::UpdateConfig {
-            owner_addr,
             interest_model,
             distribution_model,
             max_borrow_factor,
@@ -154,12 +153,16 @@ pub fn execute(
                 deps,
                 env,
                 info,
-                optional_addr_validate(api, owner_addr)?,
                 optional_addr_validate(api, interest_model)?,
                 optional_addr_validate(api, distribution_model)?,
                 max_borrow_factor,
             )
         }
+        ExecuteMsg::SetOwner { new_owner_addr } => {
+            let api = deps.api;
+            set_new_owner(deps, info, api.addr_validate(&new_owner_addr)?)
+        }
+        ExecuteMsg::AcceptOwnership {} => accept_ownership(deps, info),
         ExecuteMsg::ExecuteEpochOperations {
             deposit_rate,
             target_deposit_rate,
@@ -308,11 +311,42 @@ pub fn register_contracts(
     Ok(Response::default())
 }
 
+
+pub fn set_new_owner(
+    deps: DepsMut,
+    info: MessageInfo,
+    new_owner_addr: Addr,
+) -> Result<Response, ContractError> {
+    let config = read_config(deps.as_ref().storage)?;
+    let mut new_owner = read_new_owner(deps.as_ref().storage)?;
+    let sender_raw = deps.api.addr_canonicalize(&info.sender.to_string())?;
+    if sender_raw != config.owner_addr {
+        return Err(ContractError::Unauthorized{});
+    }
+    new_owner.new_owner_addr = deps.api.addr_canonicalize(&new_owner_addr.to_string())?;
+    store_new_owner(deps.storage, &new_owner)?;
+
+    Ok(Response::default())
+}
+
+pub fn accept_ownership(deps: DepsMut, info: MessageInfo) -> Result<Response, ContractError> {
+    let new_owner = read_new_owner(deps.as_ref().storage)?;
+    let sender_raw = deps.api.addr_canonicalize(&info.sender.to_string())?;
+    let mut config = read_config(deps.as_ref().storage)?;
+    if sender_raw != new_owner.new_owner_addr {
+        return Err(ContractError::Unauthorized{});
+    }
+
+    config.owner_addr = new_owner.new_owner_addr;
+    store_config(deps.storage, &config)?;
+
+    Ok(Response::default())
+}
+
 pub fn update_config(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
-    owner_addr: Option<Addr>,
     interest_model: Option<Addr>,
     distribution_model: Option<Addr>,
     max_borrow_factor: Option<Decimal256>,
@@ -322,10 +356,6 @@ pub fn update_config(
     // permission check
     if deps.api.addr_canonicalize(info.sender.as_str())? != config.owner_addr {
         return Err(ContractError::Unauthorized {});
-    }
-
-    if let Some(owner_addr) = owner_addr {
-        config.owner_addr = deps.api.addr_canonicalize(owner_addr.as_str())?;
     }
 
     if interest_model.is_some() {

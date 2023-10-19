@@ -14,9 +14,15 @@ pub struct InstantiateMsg {
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
     UpdateConfig {
-        owner: Option<String>,
         base_rate: Option<Decimal256>,
         interest_multiplier: Option<Decimal256>,
+    },
+    
+    SetOwner {
+        new_owner_addr: String,
+    },
+
+    AcceptOwnership {
     },
 }
 

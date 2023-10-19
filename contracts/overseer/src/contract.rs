@@ -16,8 +16,8 @@ use crate::querier::query_epoch_state;
 use crate::state::{
     read_config, read_dynrate_config, read_dynrate_state, read_epoch_state, read_whitelist,
     read_whitelist_elem, store_config, store_dynrate_config, store_dynrate_state,
-    store_epoch_state, store_whitelist_elem, Config, DynrateConfig, DynrateState, EpochState,
-    WhitelistElem,
+    store_epoch_state, store_whitelist_elem, read_new_owner, store_new_owner, Config, DynrateConfig, DynrateState, EpochState,
+    WhitelistElem, 
 };
 
 use cosmwasm_bignumber::{Decimal256, Uint256};
@@ -105,7 +105,6 @@ pub fn execute(
 ) -> Result<Response, ContractError> {
     match msg {
         ExecuteMsg::UpdateConfig {
-            owner_addr,
             oracle_contract,
             liquidation_contract,
             threshold_deposit_rate,
@@ -124,7 +123,6 @@ pub fn execute(
             update_config(
                 deps,
                 info,
-                optional_addr_validate(api, owner_addr)?,
                 optional_addr_validate(api, oracle_contract)?,
                 optional_addr_validate(api, liquidation_contract)?,
                 threshold_deposit_rate,
@@ -140,6 +138,11 @@ pub fn execute(
                 dyn_rate_max,
             )
         }
+        ExecuteMsg::SetOwner { new_owner_addr } => {
+            let api = deps.api;
+            set_new_owner(deps, info, api.addr_validate(&new_owner_addr)?)
+        }
+        ExecuteMsg::AcceptOwnership {} => accept_ownership(deps, info),
         ExecuteMsg::Whitelist {
             name,
             symbol,
@@ -196,11 +199,41 @@ pub fn execute(
     }
 }
 
+pub fn set_new_owner(
+    deps: DepsMut,
+    info: MessageInfo,
+    new_owner_addr: Addr,
+) -> Result<Response, ContractError> {
+    let config = read_config(deps.as_ref().storage)?;
+    let mut new_owner = read_new_owner(deps.as_ref().storage)?;
+    let sender_raw = deps.api.addr_canonicalize(&info.sender.to_string())?;
+    if sender_raw != config.owner_addr {
+        return Err(ContractError::Unauthorized{});
+    }
+    new_owner.new_owner_addr = deps.api.addr_canonicalize(&new_owner_addr.to_string())?;
+    store_new_owner(deps.storage, &new_owner)?;
+
+    Ok(Response::default())
+}
+
+pub fn accept_ownership(deps: DepsMut, info: MessageInfo) -> Result<Response, ContractError> {
+    let new_owner = read_new_owner(deps.as_ref().storage)?;
+    let sender_raw = deps.api.addr_canonicalize(&info.sender.to_string())?;
+    let mut config = read_config(deps.as_ref().storage)?;
+    if sender_raw != new_owner.new_owner_addr {
+        return Err(ContractError::Unauthorized{});
+    }
+
+    config.owner_addr = new_owner.new_owner_addr;
+    store_config(deps.storage, &config)?;
+
+    Ok(Response::default())
+}
+
 #[allow(clippy::too_many_arguments)]
 pub fn update_config(
     deps: DepsMut,
     info: MessageInfo,
-    owner_addr: Option<Addr>,
     oracle_contract: Option<Addr>,
     liquidation_contract: Option<Addr>,
     threshold_deposit_rate: Option<Decimal256>,
@@ -220,10 +253,6 @@ pub fn update_config(
 
     if deps.api.addr_canonicalize(info.sender.as_str())? != config.owner_addr {
         return Err(ContractError::Unauthorized {});
-    }
-
-    if let Some(owner_addr) = owner_addr {
-        config.owner_addr = deps.api.addr_canonicalize(&owner_addr.to_string())?;
     }
 
     if let Some(oracle_contract) = oracle_contract {

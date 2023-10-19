@@ -12,9 +12,11 @@ const KEY_CONFIG: &[u8] = b"config";
 const KEY_DYNRATE_CONFIG: &[u8] = b"dynrate_config";
 const KEY_EPOCH_STATE: &[u8] = b"epoch_state";
 const KEY_DYNRATE_STATE: &[u8] = b"dynrate_state";
+const KEY_NEWOWNER: &[u8] = b"newowner";
 
 const PREFIX_WHITELIST: &[u8] = b"whitelist";
 const PREFIX_COLLATERALS: &[u8] = b"collateral";
+
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Config {
@@ -63,6 +65,20 @@ pub struct WhitelistElem {
     pub symbol: String,
     pub max_ltv: Decimal256,
     pub custody_contract: CanonicalAddr,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct NewOwnerAddr {
+    pub new_owner_addr: CanonicalAddr, 
+}
+
+
+pub fn store_new_owner(storage: &mut dyn Storage, data: &NewOwnerAddr) -> StdResult<()> {
+    Singleton::new(storage, KEY_NEWOWNER).save(data)
+}
+
+pub fn read_new_owner(storage: &dyn Storage) -> StdResult<NewOwnerAddr> {
+    ReadonlySingleton::new(storage, KEY_NEWOWNER).load()
 }
 
 pub fn store_config(storage: &mut dyn Storage, data: &Config) -> StdResult<()> {
