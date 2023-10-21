@@ -37,7 +37,6 @@ pub struct InstantiateMsg {
 pub enum ExecuteMsg {
     Receive(Cw20ReceiveMsg),
     UpdateConfig {
-        owner: Option<String>,
         oracle_contract: Option<String>,
         safe_ratio: Option<Decimal256>,
         bid_fee: Option<Decimal256>,
@@ -47,6 +46,14 @@ pub enum ExecuteMsg {
         waiting_period: Option<u64>,
         overseer: Option<String>,
     },
+    
+    SetOwner {
+        new_owner_addr: String,
+    },
+
+    AcceptOwnership {
+    },
+
     /// Owner operation to whitelist a new collateral
     WhitelistCollateral {
         collateral_token: String,

@@ -60,7 +60,6 @@ pub enum ExecuteMsg {
 
     /// Update Configs
     UpdateConfig {
-        owner_addr: Option<String>,
         oracle_contract: Option<String>,
         liquidation_contract: Option<String>,
         threshold_deposit_rate: Option<Decimal256>,
@@ -75,6 +74,14 @@ pub enum ExecuteMsg {
         dyn_rate_min: Option<Decimal256>,
         dyn_rate_max: Option<Decimal256>,
     },
+
+    SetOwner {
+        new_owner_addr: String,
+    },
+
+    AcceptOwnership {
+    },
+    
     /// Create new custody contract for the given collateral token
     Whitelist {
         name: String,             // bAsset name

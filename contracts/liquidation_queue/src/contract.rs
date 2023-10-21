@@ -9,13 +9,13 @@ use crate::query::{
     query_config, query_liquidation_amount,
 };
 use crate::state::{
-    read_collateral_info, read_config, store_collateral_info, store_config, CollateralInfo, Config,
+    read_collateral_info, read_config, store_collateral_info, store_config, CollateralInfo, Config, read_new_owner, store_new_owner,
 };
 
 use crate::error::ContractError;
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::{
-    from_binary, to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError, StdResult,
+    from_binary, to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError, StdResult, Addr,
 };
 use cw20::Cw20ReceiveMsg;
 use moneymarket::liquidation_queue::{Cw20HookMsg, ExecuteMsg, InstantiateMsg, QueryMsg};
@@ -58,7 +58,6 @@ pub fn execute(
     match msg {
         ExecuteMsg::Receive(msg) => receive_cw20(deps, env, info, msg),
         ExecuteMsg::UpdateConfig {
-            owner,
             oracle_contract,
             safe_ratio,
             bid_fee,
@@ -70,7 +69,6 @@ pub fn execute(
         } => update_config(
             deps,
             info,
-            owner,
             oracle_contract,
             safe_ratio,
             bid_fee,
@@ -80,6 +78,11 @@ pub fn execute(
             waiting_period,
             overseer,
         ),
+        ExecuteMsg::SetOwner { new_owner_addr } => {
+            let api = deps.api;
+            set_new_owner(deps, info, api.addr_validate(&new_owner_addr)?)
+        }
+        ExecuteMsg::AcceptOwnership {} => accept_ownership(deps, info),
         ExecuteMsg::WhitelistCollateral {
             collateral_token,
             bid_threshold,
@@ -171,11 +174,42 @@ pub fn receive_cw20(
     }
 }
 
+
+pub fn set_new_owner(
+    deps: DepsMut,
+    info: MessageInfo,
+    new_owner_addr: Addr,
+) -> Result<Response, ContractError> {
+    let config = read_config(deps.as_ref().storage)?;
+    let mut new_owner = read_new_owner(deps.as_ref().storage)?;
+    let sender_raw = deps.api.addr_canonicalize(&info.sender.to_string())?;
+    if sender_raw != config.owner {
+        return Err(ContractError::Unauthorized{});
+    }
+    new_owner.new_owner_addr = deps.api.addr_canonicalize(&new_owner_addr.to_string())?;
+    store_new_owner(deps.storage, &new_owner)?;
+
+    Ok(Response::default())
+}
+
+pub fn accept_ownership(deps: DepsMut, info: MessageInfo) -> Result<Response, ContractError> {
+    let new_owner = read_new_owner(deps.as_ref().storage)?;
+    let sender_raw = deps.api.addr_canonicalize(&info.sender.to_string())?;
+    let mut config = read_config(deps.as_ref().storage)?;
+    if sender_raw != new_owner.new_owner_addr {
+        return Err(ContractError::Unauthorized{});
+    }
+
+    config.owner = new_owner.new_owner_addr;
+    store_config(deps.storage, &config)?;
+
+    Ok(Response::default())
+}
+
 #[allow(clippy::too_many_arguments)]
 pub fn update_config(
     deps: DepsMut,
     info: MessageInfo,
-    owner: Option<String>,
     oracle_contract: Option<String>,
     safe_ratio: Option<Decimal256>,
     bid_fee: Option<Decimal256>,
@@ -188,10 +222,6 @@ pub fn update_config(
     let mut config: Config = read_config(deps.storage)?;
     if deps.api.addr_canonicalize(info.sender.as_str())? != config.owner {
         return Err(ContractError::Unauthorized {});
-    }
-
-    if let Some(owner) = owner {
-        config.owner = deps.api.addr_canonicalize(&owner)?;
     }
 
     if let Some(oracle_contract) = oracle_contract {

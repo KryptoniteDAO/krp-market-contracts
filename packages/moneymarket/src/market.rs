@@ -44,12 +44,17 @@ pub enum ExecuteMsg {
 
     /// Update config values
     UpdateConfig {
-        owner_addr: Option<String>,
         max_borrow_factor: Option<Decimal256>,
         interest_model: Option<String>,
         distribution_model: Option<String>,
     },
+    
+    SetOwner {
+        new_owner_addr: String,
+    },
 
+    AcceptOwnership {
+    },
     ////////////////////
     /// Overseer operations
     ////////////////////
