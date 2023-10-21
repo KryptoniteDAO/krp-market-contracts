@@ -1,7 +1,7 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 
-use crate::asserts::{assert_fees, assert_max_slot, assert_max_slot_premium};
+use crate::asserts::{assert_fees, assert_max_slot, assert_max_slot_premium, assert_safe_ratio};
 use crate::bid::{activate_bids, claim_liquidations, execute_liquidation, retract_bid, submit_bid};
 use crate::querier::query_collateral_whitelist_info;
 use crate::query::{
@@ -28,6 +28,7 @@ pub fn instantiate(
     msg: InstantiateMsg,
 ) -> StdResult<Response> {
     assert_fees(msg.liquidator_fee + msg.bid_fee)?;
+    assert_safe_ratio(msg.safe_ratio)?;
 
     store_config(
         deps.storage,
@@ -229,6 +230,7 @@ pub fn update_config(
     }
 
     if let Some(safe_ratio) = safe_ratio {
+        assert_safe_ratio(safe_ratio)?;
         config.safe_ratio = safe_ratio;
     }
 
