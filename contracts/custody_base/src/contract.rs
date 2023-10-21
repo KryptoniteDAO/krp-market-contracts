@@ -75,7 +75,7 @@ pub fn execute(
         }
         ExecuteMsg::DistributeRewards {} => Ok(Response::new()),
         ExecuteMsg::WithdrawCollateral { borrower, amount } => {
-            withdraw_collateral(deps, borrower, amount)
+            withdraw_collateral(deps, info, borrower, amount)
         }
         ExecuteMsg::LiquidateCollateral {
             liquidator,
