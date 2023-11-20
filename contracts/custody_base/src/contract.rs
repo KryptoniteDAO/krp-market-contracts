@@ -10,7 +10,7 @@ use crate::collateral::{
     unlock_collateral, withdraw_collateral,
 };
 use crate::error::ContractError;
-use crate::state::{read_config, store_config, Config};
+use crate::state::{read_config, store_config, Config, read_new_owner, store_new_owner};
 
 use cw20::Cw20ReceiveMsg;
 use moneymarket::common::optional_addr_validate;
@@ -54,17 +54,20 @@ pub fn execute(
     match msg {
         ExecuteMsg::Receive(msg) => receive_cw20(deps, info, msg),
         ExecuteMsg::UpdateConfig {
-            owner,
             liquidation_contract,
         } => {
             let api = deps.api;
             update_config(
                 deps,
                 info,
-                optional_addr_validate(api, owner)?,
                 optional_addr_validate(api, liquidation_contract)?,
             )
         }
+        ExecuteMsg::SetOwner { new_owner_addr } => {
+            let api = deps.api;
+            set_new_owner(deps, info, api.addr_validate(&new_owner_addr)?)
+        }
+        ExecuteMsg::AcceptOwnership {} => accept_ownership(deps, info),
         ExecuteMsg::LockCollateral { borrower, amount } => {
             let borrower_addr = deps.api.addr_validate(&borrower)?;
             lock_collateral(deps, info, borrower_addr, amount)
@@ -75,7 +78,7 @@ pub fn execute(
         }
         ExecuteMsg::DistributeRewards {} => Ok(Response::new()),
         ExecuteMsg::WithdrawCollateral { borrower, amount } => {
-            withdraw_collateral(deps, borrower, amount)
+            withdraw_collateral(deps, info, borrower, amount)
         }
         ExecuteMsg::LiquidateCollateral {
             liquidator,
@@ -120,20 +123,48 @@ pub fn receive_cw20(
     }
 }
 
+
+pub fn set_new_owner(
+    deps: DepsMut,
+    info: MessageInfo,
+    new_owner_addr: Addr,
+) -> Result<Response, ContractError> {
+    let config = read_config(deps.as_ref().storage)?;
+    let mut new_owner = read_new_owner(deps.as_ref().storage)?;
+    let sender_raw = deps.api.addr_canonicalize(&info.sender.to_string())?;
+    if sender_raw != config.owner {
+        return Err(ContractError::Unauthorized {});
+    }
+    new_owner.new_owner_addr = deps.api.addr_canonicalize(&new_owner_addr.to_string())?;
+    store_new_owner(deps.storage, &new_owner)?;
+
+    Ok(Response::default())
+}
+
+pub fn accept_ownership(deps: DepsMut, info: MessageInfo) -> Result<Response, ContractError> {
+    let new_owner = read_new_owner(deps.as_ref().storage)?;
+    let sender_raw = deps.api.addr_canonicalize(&info.sender.to_string())?;
+    let mut config = read_config(deps.as_ref().storage)?;
+    if sender_raw != new_owner.new_owner_addr {
+        return Err(ContractError::Unauthorized {});
+    }
+
+    config.owner = new_owner.new_owner_addr;
+    store_config(deps.storage, &config)?;
+
+    Ok(Response::default())
+}
+
+
 pub fn update_config(
     deps: DepsMut,
     info: MessageInfo,
-    owner: Option<Addr>,
     liquidation_contract: Option<Addr>,
 ) -> Result<Response, ContractError> {
     let mut config: Config = read_config(deps.storage)?;
 
     if deps.api.addr_canonicalize(info.sender.as_str())? != config.owner {
         return Err(ContractError::Unauthorized {});
-    }
-
-    if let Some(owner) = owner {
-        config.owner = deps.api.addr_canonicalize(owner.as_str())?;
     }
 
     if let Some(liquidation_contract) = liquidation_contract {

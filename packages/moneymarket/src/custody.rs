@@ -39,9 +39,16 @@ pub enum ExecuteMsg {
 
     /// Update config
     UpdateConfig {
-        owner: Option<String>,
         liquidation_contract: Option<String>,
     },
+
+    SetOwner {
+        new_owner_addr: String,
+    },
+
+    AcceptOwnership {
+    },
+    
     /// Make specified amount of tokens unspendable
     LockCollateral { borrower: String, amount: Uint256 },
     /// Make specified amount of collateral tokens spendable

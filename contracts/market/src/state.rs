@@ -9,6 +9,7 @@ use moneymarket::market::BorrowerInfoResponse;
 
 pub const KEY_CONFIG: &[u8] = b"config";
 pub const KEY_STATE: &[u8] = b"state";
+const KEY_NEWOWNER: &[u8] = b"newowner";
 
 const PREFIX_LIABILITY: &[u8] = b"liability";
 
@@ -46,6 +47,19 @@ pub struct BorrowerInfo {
     pub reward_index: Decimal256,
     pub loan_amount: Uint256,
     pub pending_rewards: Decimal256,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct NewOwnerAddr {
+    pub new_owner_addr: CanonicalAddr, 
+}
+
+pub fn store_new_owner(storage: &mut dyn Storage, data: &NewOwnerAddr) -> StdResult<()> {
+    Singleton::new(storage, KEY_NEWOWNER).save(data)
+}
+
+pub fn read_new_owner(storage: &dyn Storage) -> StdResult<NewOwnerAddr> {
+    ReadonlySingleton::new(storage, KEY_NEWOWNER).load()
 }
 
 pub fn store_config(storage: &mut dyn Storage, data: &Config) -> StdResult<()> {
