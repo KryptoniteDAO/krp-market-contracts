@@ -7,7 +7,7 @@ use crate::borrow::{
 };
 use crate::deposit::{compute_exchange_rate_raw, deposit_stable, redeem_stable};
 use crate::error::ContractError;
-use crate::querier::{query_borrow_rate, query_target_deposit_rate};
+use crate::querier::{query_borrow_rate, query_target_deposit_rate, query_kpt_emission_rate};
 use crate::response::MsgInstantiateContractResponse;
 use crate::state::{read_config, read_state, store_config, store_state, Config, State};
 
@@ -354,9 +354,9 @@ pub fn execute_epoch_operations(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
-    _deposit_rate: Decimal256,
+    deposit_rate: Decimal256,
     target_deposit_rate: Decimal256,
-    _threshold_deposit_rate: Decimal256,
+    threshold_deposit_rate: Decimal256,
     distributed_interest: Uint256,
 ) -> Result<Response, ContractError> {
     let config: Config = read_config(deps.storage)?;
@@ -408,19 +408,6 @@ pub fn execute_epoch_operations(
     let messages: Vec<CosmosMsg> = if !total_reserves.is_zero() && balance > total_reserves {
         state.total_reserves = state.total_reserves - Decimal256::from_uint256(total_reserves);
 
-        // vec![
-        //     CosmosMsg::Wasm(WasmMsg::Execute {
-        //         contract_addr: deps.api.addr_humanize(&config.stable_contract)?.to_string(),
-        //         funds : vec![],
-        //         msg: to_binary(&Cw20ExecuteMsg::Transfer {
-        //             recipient: deps.api
-        //                  .addr_humanize(&config.collector_contract)?
-        //                  .to_string(),
-        //             amount: total_reserves.into(),
-        //             })?
-        //         }
-        //     )
-        // ]
         vec![CosmosMsg::Bank(BankMsg::Send {
             to_address: deps
                 .api
@@ -438,6 +425,16 @@ pub fn execute_epoch_operations(
         vec![]
     };
 
+    // Query updated kpt_emission_rate
+    state.kpt_emission_rate = query_kpt_emission_rate(
+        deps.as_ref(),
+        deps.api.addr_humanize(&config.distribution_model)?,
+        deposit_rate,
+        target_deposit_rate,
+        threshold_deposit_rate,
+        state.kpt_emission_rate,
+    )?
+    .emission_rate;
     store_state(deps.storage, &state)?;
 
     Ok(Response::new().add_messages(messages).add_attributes(vec![
