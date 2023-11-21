@@ -22,7 +22,7 @@ pub struct Config {
     pub distribution_model: CanonicalAddr,
     pub overseer_contract: CanonicalAddr,
     pub collector_contract: CanonicalAddr,
-    pub distributor_contract: CanonicalAddr,
+    pub distributor_contract: CanonicalAddr,    //veSeilors token contract address
     pub stable_denom: String,
     pub max_borrow_factor: Decimal256,
 }
