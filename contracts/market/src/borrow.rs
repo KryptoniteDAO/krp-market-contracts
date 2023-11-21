@@ -1,12 +1,13 @@
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::{
-    attr, Addr, BankMsg, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response, StdResult,
+    attr, Addr, BankMsg, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response, StdResult, WasmMsg, to_binary,
 };
 
 use moneymarket::interest_model::BorrowRateResponse;
 use moneymarket::market::{BorrowerInfoResponse, BorrowerInfosResponse};
 use moneymarket::overseer::BorrowLimitResponse;
 use moneymarket::querier::{deduct_tax, query_balance, query_supply};
+use moneymarket::thirdpart::ExecuteMsg as ThirdpartExecuteMsg;
 
 use crate::deposit::compute_exchange_rate_raw;
 use crate::error::ContractError;
@@ -15,6 +16,7 @@ use crate::state::{
     read_borrower_info, read_borrower_infos, read_config, read_state, store_borrower_info,
     store_state, BorrowerInfo, Config, State,
 };
+
 
 pub fn borrow_stable(
     deps: DepsMut,
@@ -105,11 +107,6 @@ pub fn repay_stable_from_liquidation(
         config.stable_denom.to_string(),
     )?;
 
-    // let cur_balance: Uint256 = query_token_balance(
-    //     deps.as_ref(),
-    //     deps.as_ref().api.addr_humanize(&config.stable_contract)?,
-    //     env.contract.address.clone())?;
-
     // override env
     let mut info = info;
 
@@ -166,14 +163,6 @@ pub fn repay_stable(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respon
 
         // Payback left repay amount to sender
         messages.push(
-            //  CosmosMsg::Wasm(WasmMsg::Execute {
-            // contract_addr: deps.api.addr_humanize(&config.stable_contract)?.to_string(),
-            // funds: vec![],
-            // msg: to_binary(&Cw20ExecuteMsg::Transfer {
-            //     recipient:  borrower.to_string(),
-            //     amount: (amount - repay_amount).into(),
-            // })?
-            // }));
             CosmosMsg::Bank(BankMsg::Send {
                 to_address: borrower.to_string(),
                 amount: vec![deduct_tax(
@@ -206,7 +195,7 @@ pub fn claim_rewards(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
-    _to: Option<Addr>,
+    to: Option<Addr>,
 ) -> Result<Response, ContractError> {
     let config: Config = read_config(deps.storage)?;
     let mut state: State = read_state(deps.storage)?;
@@ -228,26 +217,26 @@ pub fn claim_rewards(
 
     store_state(deps.storage, &state)?;
     store_borrower_info(deps.storage, &borrower_raw, &liability)?;
-    let messages: Vec<CosmosMsg> = vec![];
-    // let messages: Vec<CosmosMsg> = if !claim_amount.is_zero() {
-    //     vec![CosmosMsg::Wasm(WasmMsg::Execute {
-    //         contract_addr: deps
-    //             .api
-    //             .addr_humanize(&config.distributor_contract)?
-    //             .to_string(),
-    //         funds: vec![],
-    //         msg: to_binary(&FaucetExecuteMsg::Spend {
-    //             recipient: if let Some(to) = to {
-    //                 to.to_string()
-    //             } else {
-    //                 borrower.to_string()
-    //             },
-    //             amount: claim_amount.into(),
-    //         })?,
-    //     })]
-    // } else {
-    //     vec![]
-    // };
+
+    let messages: Vec<CosmosMsg> = if !claim_amount.is_zero() {
+        vec![CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: deps
+                .api
+                .addr_humanize(&config.distributor_contract)?
+                .to_string(),
+            funds: vec![],
+            msg: to_binary(&ThirdpartExecuteMsg::Mint {
+                recipient: if let Some(to) = to {
+                    to.to_string()
+                } else {
+                    borrower.to_string()
+                },
+                amount: claim_amount.into(),
+            })?,
+        })]
+    } else {
+        vec![]
+    };
 
     Ok(Response::new().add_messages(messages).add_attributes(vec![
         attr("action", "claim_rewards"),
