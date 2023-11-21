@@ -225,11 +225,11 @@ pub fn claim_rewards(
                 .addr_humanize(&config.distributor_contract)?
                 .to_string(),
             funds: vec![],
-            msg: to_binary(&ThirdpartExecuteMsg::Mint {
-                recipient: if let Some(to) = to {
-                    to.to_string()
+            msg: to_binary(&ThirdpartExecuteMsg::VeFundMint {
+                user: if let Some(to) = to {
+                    to
                 } else {
-                    borrower.to_string()
+                    borrower
                 },
                 amount: claim_amount.into(),
             })?,

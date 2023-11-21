@@ -1,9 +1,7 @@
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::Uint128;
-
-
+use cosmwasm_std::{Uint128, Addr};
 
 #[cw_serde]
 pub enum ExecuteMsg {
-    Mint { recipient: String, amount: Uint128 },
+    VeFundMint { user: Addr, amount: Uint128 },
 }
