@@ -11,6 +11,7 @@ use moneymarket::liquidation_queue::{
     ConfigResponse, LiquidationAmountResponse,
 };
 
+use moneymarket::querier::query_tax_rate_and_cap;
 use moneymarket::tokens::TokensHuman;
 
 pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
@@ -65,8 +66,18 @@ pub fn query_liquidation_amount(
         config.safe_ratio
     };
 
-    let base_fee_deductor =
-        (Decimal256::one() - config.bid_fee) * (Decimal256::one() - config.liquidator_fee);
+    // check tax cap
+    let (mut tax_rate, tax_cap) = query_tax_rate_and_cap(deps, config.stable_denom)?;
+    let mut tax_cap_adj = tax_cap;
+    if borrow_amount * tax_rate > tax_cap_adj {
+        tax_rate = Decimal256::zero()
+    } else {
+        tax_cap_adj = Uint256::from(1u128)
+    }
+
+    let base_fee_deductor = (Decimal256::one() - config.bid_fee)
+        * (Decimal256::one() - config.liquidator_fee)
+        * (Decimal256::one() - tax_rate);
 
     let mut result: Vec<(String, Uint256)> = vec![];
     for (i, collateral) in collaterals.iter().enumerate() {
@@ -108,7 +119,7 @@ pub fn query_liquidation_amount(
 
             if g_x > f_x {
                 let nominator =
-                    collateral_borrow_amount - safe_borrow + (discounted_price * prev_x) - prev_g_x;
+                    collateral_borrow_amount - safe_borrow + tax_cap_adj + (discounted_price * prev_x) - prev_g_x;
                 let denominator = price
                     * (((Decimal256::one() - premium_rate) * base_fee_deductor)
                         - (safe_ratio * max_ltv));

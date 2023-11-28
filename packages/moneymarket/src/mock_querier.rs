@@ -1,14 +1,29 @@
+use crate::common::{QueryTaxWrapper, QueryTaxMsg, TaxRateResponse, TaxCapResponse};
+use crate::overseer::{WhitelistResponse, WhitelistResponseElem};
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+
 use cosmwasm_bignumber::Decimal256;
 use cosmwasm_std::testing::{MockApi, MockQuerier, MockStorage, MOCK_CONTRACT_ADDR};
 use cosmwasm_std::{
-    from_binary, from_slice, to_binary, Coin, ContractResult, Decimal, OwnedDeps, Querier,
+    from_json, to_json_binary, Coin, ContractResult, Decimal, OwnedDeps, Querier,
     QuerierResult, QueryRequest, SystemError, SystemResult, Uint128, WasmQuery,
 };
 use std::collections::HashMap;
+use crate::oracle_pyth::PriceResponse;
 
-use crate::oracle::{PriceResponse, QueryMsg as OracleQueryMsg};
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum QueryMsg {
+/// Query oracle price to oracle contract
+    QueryPrice { asset: String },
+    Whitelist {
+        collateral_token: Option<String>,
+        start_after: Option<String>,
+        limit: Option<u32>,
+    },
+}
 
-use sei_cosmwasm::{SeiQuery, SeiQueryWrapper, SeiRoute};
 
 /// mock_dependencies is a drop-in replacement for cosmwasm_std::testing::mock_dependencies
 /// this uses our CustomQuerier.
@@ -27,12 +42,37 @@ pub fn mock_dependencies(
 }
 
 pub struct WasmMockQuerier {
-    base: MockQuerier<SeiQueryWrapper>,
+    base: MockQuerier<QueryTaxWrapper>,
     tax_querier: TaxQuerier,
     oracle_price_querier: OraclePriceQuerier,
+    collateral_querier: CollateralQuerier,
 }
 
 #[derive(Clone, Default)]
+pub struct CollateralQuerier {
+    collaterals: HashMap<String, Decimal256>,
+}
+
+impl CollateralQuerier {
+    pub fn new(collaterals: &[(&String, &Decimal256)]) -> Self {
+        CollateralQuerier {
+            collaterals: collaterals_to_map(collaterals),
+        }
+    }
+}
+
+pub(crate) fn collaterals_to_map(
+    collaterals: &[(&String, &Decimal256)],
+) -> HashMap<String, Decimal256> {
+    let mut collateral_map: HashMap<String, Decimal256> = HashMap::new();
+    for (col, max_ltv) in collaterals.iter() {
+        collateral_map.insert((*col).clone(), **max_ltv);
+    }
+    collateral_map
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq, JsonSchema)]
+#[serde(rename_all = "snake_case")]
 pub struct TaxQuerier {
     rate: Decimal,
     // this lets us iterate over all pairs that match the first string
@@ -59,12 +99,12 @@ pub(crate) fn caps_to_map(caps: &[(&String, &Uint128)]) -> HashMap<String, Uint1
 #[derive(Clone, Default)]
 pub struct OraclePriceQuerier {
     // this lets us iterate over all pairs that match the first string
-    oracle_price: HashMap<(String, String), (Decimal256, u64, u64)>,
+    oracle_price: HashMap<String, (Decimal256, i64, Decimal256, i64, u64, u64)>,
 }
 
 #[allow(clippy::type_complexity)]
 impl OraclePriceQuerier {
-    pub fn new(oracle_price: &[(&(String, String), &(Decimal256, u64, u64))]) -> Self {
+    pub fn new(oracle_price: &[(&String, &(Decimal256, i64, Decimal256, i64, u64, u64))]) -> Self {
         OraclePriceQuerier {
             oracle_price: oracle_price_to_map(oracle_price),
         }
@@ -73,20 +113,19 @@ impl OraclePriceQuerier {
 
 #[allow(clippy::type_complexity)]
 pub(crate) fn oracle_price_to_map(
-    oracle_price: &[(&(String, String), &(Decimal256, u64, u64))],
-) -> HashMap<(String, String), (Decimal256, u64, u64)> {
-    let mut oracle_price_map: HashMap<(String, String), (Decimal256, u64, u64)> = HashMap::new();
+    oracle_price: &[(&String, &(Decimal256, i64, Decimal256, i64, u64, u64))],
+) -> HashMap< String, (Decimal256, i64, Decimal256, i64, u64, u64)> {
+    let mut oracle_price_map: HashMap< String, (Decimal256, i64, Decimal256, i64, u64, u64)> = HashMap::new();
     for (base_quote, oracle_price) in oracle_price.iter() {
         oracle_price_map.insert((*base_quote).clone(), **oracle_price);
     }
-
     oracle_price_map
 }
 
 impl Querier for WasmMockQuerier {
     fn raw_query(&self, bin_request: &[u8]) -> QuerierResult {
         // MockQuerier doesn't support Custom, so we ignore it completely here
-        let request: QueryRequest<SeiQueryWrapper> = match from_slice(bin_request) {
+        let request: QueryRequest<QueryTaxWrapper> = match from_json(bin_request) {
             Ok(v) => v,
             Err(e) => {
                 return SystemResult::Err(SystemError::InvalidRequest {
@@ -100,65 +139,91 @@ impl Querier for WasmMockQuerier {
 }
 
 impl WasmMockQuerier {
-    pub fn handle_query(&self, request: &QueryRequest<SeiQueryWrapper>) -> QuerierResult {
+    pub fn handle_query(&self, request: &QueryRequest<QueryTaxWrapper>) -> QuerierResult {
         match &request {
-            // QueryRequest::Custom(SeiQueryWrapper { route, query_data }) => {
-            //     if &SeiRoute::Treasury == route {
-            //         match query_data {
-            //             SeiQuery::TaxRate {} => {
-            //                 let res = TaxRateResponse {
-            //                     rate: self.tax_querier.rate,
-            //                 };
-            //                 SystemResult::Ok(ContractResult::from(to_binary(&res)))
-            //             }
-            //             SeiQuery::TaxCap { denom } => {
-            //                 let cap = self
-            //                     .tax_querier
-            //                     .caps
-            //                     .get(denom)
-            //                     .copied()
-            //                     .unwrap_or_default();
-            //                 let res = TaxCapResponse { cap };
-            //                 SystemResult::Ok(ContractResult::from(to_binary(&res)))
-            //             }
-            //             _ => panic!("DO NOT ENTER HERE"),
-            //         }
-            //     } else {
-            //         panic!("DO NOT ENTER HERE")
-            //     }
-            // }
-            QueryRequest::Wasm(WasmQuery::Smart {
-                contract_addr: _,
-                msg,
-            }) => match from_binary(msg).unwrap() {
-                OracleQueryMsg::Price { base, quote } => {
-                    match self.oracle_price_querier.oracle_price.get(&(base, quote)) {
-                        Some(v) => {
-                            SystemResult::Ok(ContractResult::from(to_binary(&PriceResponse {
-                                rate: v.0,
-                                last_updated_base: v.1,
-                                last_updated_quote: v.2,
-                            })))
+                QueryRequest::Custom(QueryTaxWrapper { query_data }) => {
+                    match query_data {
+                        QueryTaxMsg::TaxRate {} => {
+                            let res = TaxRateResponse {
+                                rate: self.tax_querier.rate,
+                            };
+                            SystemResult::Ok(ContractResult::from(to_json_binary(&res)))
                         }
-                        None => SystemResult::Err(SystemError::InvalidRequest {
-                            error: "No oracle price exists".to_string(),
-                            request: msg.as_slice().into(),
-                        }),
+                        QueryTaxMsg::TaxCap { denom } => {
+                            let cap = self
+                                .tax_querier
+                                .caps
+                                .get(denom)
+                                .copied()
+                                .unwrap_or_default();
+                            let res = TaxCapResponse { cap };
+                            SystemResult::Ok(ContractResult::from(to_json_binary(&res)))
+                        }
                     }
-                }
-                _ => panic!("DO NOT ENTER HERE"),
-            },
-            _ => self.base.handle_query(request),
+                } 
+                QueryRequest::Wasm(WasmQuery::Smart {
+                    contract_addr: _,
+                    msg,
+                }) => match from_json(msg).unwrap() {
+                    QueryMsg::QueryPrice { asset, } => {
+                        match self.oracle_price_querier.oracle_price.get(&(asset)) {
+                            Some(v) => {
+                                SystemResult::Ok(ContractResult::from(to_json_binary(&PriceResponse {
+                                    asset,
+                                    emv_price: v.0, 
+                                    emv_price_raw: v.1,
+                                    price: v.2,
+                                    price_raw: v.3,
+                                    last_updated_base: v.4,
+                                    last_updated_quote: v.5,
+                                })))
+                            }
+                            None => SystemResult::Err(SystemError::InvalidRequest {
+                                error: "No oracle price exists".to_string(),
+                                request: msg.as_slice().into(),
+                            }),
+                        }
+                    }
+                    QueryMsg::Whitelist {
+                        collateral_token,
+                        start_after: _,
+                        limit: _,
+                    } => {
+                        match self
+                            .collateral_querier
+                            .collaterals
+                            .get(&collateral_token.unwrap())
+                        {
+                            Some(v) => {
+                                SystemResult::Ok(ContractResult::from(to_json_binary(&WhitelistResponse {
+                                    elems: vec![WhitelistResponseElem {
+                                        name: "name".to_string(),
+                                        symbol: "symbol".to_string(),
+                                        max_ltv: *v,
+                                        custody_contract: "custody0000".to_string(),
+                                        collateral_token: "token0000".to_string(),
+                                    }],
+                                })))
+                            }
+                            None => SystemResult::Err(SystemError::InvalidRequest {
+                                error: "".to_string(),
+                                request: msg.as_slice().into(),
+                            }),
+                        }
+                    }
+                },
+                _ => self.base.handle_query(request),
         }
     }
 }
 
 impl WasmMockQuerier {
-    pub fn new(base: MockQuerier<SeiQueryWrapper>) -> Self {
+    pub fn new(base: MockQuerier<QueryTaxWrapper>) -> Self {
         WasmMockQuerier {
             base,
             tax_querier: TaxQuerier::default(),
             oracle_price_querier: OraclePriceQuerier::default(),
+            collateral_querier: CollateralQuerier::default(),
         }
     }
 
@@ -170,8 +235,12 @@ impl WasmMockQuerier {
     #[allow(clippy::type_complexity)]
     pub fn with_oracle_price(
         &mut self,
-        oracle_price: &[(&(String, String), &(Decimal256, u64, u64))],
+        oracle_price: &[(&String, &(Decimal256, i64, Decimal256, i64, u64, u64))],
     ) {
         self.oracle_price_querier = OraclePriceQuerier::new(oracle_price);
+    }
+
+    pub fn with_collateral_max_ltv(&mut self, collaterals: &[(&String, &Decimal256)]) {
+        self.collateral_querier = CollateralQuerier::new(collaterals);
     }
 }

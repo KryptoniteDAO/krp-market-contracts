@@ -1,9 +1,11 @@
+use std::ops::Deref;
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::{
-    to_binary,
+    to_json_binary,
     Addr,
     AllBalanceResponse,
     BalanceResponse,
@@ -13,11 +15,14 @@ use cosmwasm_std::{
     QueryRequest,
     StdResult,
     Uint128,
-    WasmQuery, //QuerierWrapper,
+    WasmQuery, 
 };
 use cw20::{BalanceResponse as Cw20BalanceResponse, Cw20QueryMsg, TokenInfoResponse};
 
-use crate::oracle::{PriceResponse};
+use crate::common::CustomQuerier;
+// use crate::common::QueryTaxWrapper;
+
+use crate::oracle::PriceResponse;
 use crate::oracle_pyth::{PriceResponse as PythPriceResponse,QueryMsg as PythOracleQueryMsg};
 
 pub fn query_all_balances(deps: Deps, account_addr: Addr) -> StdResult<Vec<Coin>> {
@@ -89,33 +94,32 @@ pub fn query_supply(deps: Deps, contract_addr: Addr) -> StdResult<Uint256> {
     let token_info: TokenInfoResponse =
         deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
             contract_addr: contract_addr.to_string(),
-            msg: to_binary(&Cw20QueryMsg::TokenInfo {})?,
+            msg: to_json_binary(&Cw20QueryMsg::TokenInfo {})?,
         }))?;
 
     Ok(Uint256::from(token_info.total_supply))
 }
 
-pub fn query_tax_rate_and_cap(_deps: Deps, _denom: String) -> StdResult<(Decimal256, Uint256)> {
-    // let terra_querier = TerraQuerier::new(&deps.querier);
-    // let rate = terra_querier.query_tax_rate()?.rate;
-    // let cap = terra_querier.query_tax_cap(denom)?.cap;
-    let rate = Decimal256::zero();
-    let cap = Uint256::zero();
+pub fn query_tax_rate_and_cap(deps: Deps, denom: String) -> StdResult<(Decimal256, Uint256)> {
+    let custom_querier = CustomQuerier::new(deps.querier.deref());
+    let rate = custom_querier.query_tax_rate()?.rate;
+    let cap = custom_querier.query_tax_cap(denom)?.cap;
+
     Ok((rate.into(), cap.into()))
 }
 
-pub fn query_tax_rate(_deps: Deps) -> StdResult<Decimal256> {
-    // let terra_querier = TerraQuerier::new(&deps.querier);
-    // Ok(terra_querier.query_tax_rate()?.rate.into())
-    Ok(Decimal256::zero().into())
+pub fn query_tax_rate(deps: Deps) -> StdResult<Decimal256> {
+    let custom_querier = CustomQuerier::new(deps.querier.deref());
+    Ok(custom_querier.query_tax_rate()?.rate.into())
 }
 
-pub fn compute_tax(_deps: Deps, coin: &Coin) -> StdResult<Uint256> {
-    // let terra_querier = TerraQuerier::new(&deps.querier);
-    // let tax_rate = Decimal256::from((terra_querier.query_tax_rate()?).rate);
-    // let tax_cap = Uint256::from((terra_querier.query_tax_cap(coin.denom.to_string())?).cap);
-    let tax_rate = Decimal256::zero();
-    let tax_cap = Uint256::zero();
+
+
+pub fn compute_tax(deps: Deps, coin: &Coin) -> StdResult<Uint256> {
+    let custom_querier = CustomQuerier::new(deps.querier.deref());
+    // let custom_querier: Deps<QueryTaxWrapper> = deps.as_ref();
+    let tax_rate = Decimal256::from((custom_querier.query_tax_rate()?).rate);
+    let tax_cap = Uint256::from((custom_querier.query_tax_cap(coin.denom.to_string())?).cap);
     let amount = Uint256::from(coin.amount);
     Ok(std::cmp::min(
         amount * Decimal256::one() - amount / (Decimal256::one() + tax_rate),
@@ -123,25 +127,14 @@ pub fn compute_tax(_deps: Deps, coin: &Coin) -> StdResult<Uint256> {
     ))
 }
 
-pub fn deduct_tax(_deps: Deps, coin: Coin) -> StdResult<Coin> {
-    //let tax_amount = compute_tax(deps, &coin)?;
+pub fn deduct_tax(deps: Deps, coin: Coin) -> StdResult<Coin> {
+    let tax_amount = compute_tax(deps, &coin)?;
     Ok(Coin {
         denom: coin.denom,
-        //amount: (Uint256::from(coin.amount) - tax_amount).into(),
-        amount: Uint256::from(coin.amount).into(),
+        amount: (Uint256::from(coin.amount) - tax_amount).into(),
     })
 }
 
-pub fn deduct_tax_new(_deps: Deps, burn_amount: Uint128) -> StdResult<Uint256> {
-    // let tax_cap = Uint256::one();
-    // let protocal_fee_rate = Decimal256::from_ratio(5, 1000);
-
-    // Ok(std::cmp::min(
-    //     Uint256::from(burn_amount) * Decimal256::one() - Uint256::from(burn_amount) / (Decimal256::one() + protocal_fee_rate),
-    //     tax_cap,
-    //     ))
-    Ok(Uint256::from(burn_amount))
-}
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct TimeConstraints {
@@ -160,7 +153,7 @@ pub fn query_price(
     let pyth_oracle_price: PythPriceResponse =
         deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
             contract_addr: oracle_addr.to_string(),
-            msg: to_binary(&PythOracleQueryMsg::QueryPrice { asset: base })?,
+            msg: to_json_binary(&PythOracleQueryMsg::QueryPrice { asset: base })?,
         }))?;
 
     let oracle_price = PriceResponse {
@@ -172,7 +165,7 @@ pub fn query_price(
     // let oracle_price: PriceResponse =
     //     deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
     //         contract_addr: oracle_addr.to_string(),
-    //         msg: to_binary(&OracleQueryMsg::Price { base, quote })?,
+    //         msg: to_json_binary(&OracleQueryMsg::Price { base, quote })?,
     //     }))?;
     //
     //

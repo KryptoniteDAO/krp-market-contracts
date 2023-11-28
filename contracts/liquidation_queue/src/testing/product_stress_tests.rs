@@ -6,7 +6,7 @@ use crate::testing::mock_querier::mock_dependencies;
 
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::testing::{mock_env, mock_info, MockApi};
-use cosmwasm_std::{from_binary, to_binary, Coin, Decimal, MemoryStorage, OwnedDeps, Uint128};
+use cosmwasm_std::{from_json, to_json_binary, Coin, Decimal, MemoryStorage, OwnedDeps, Uint128};
 use cw20::Cw20ReceiveMsg;
 use moneymarket::liquidation_queue::{
     BidsResponse, Cw20HookMsg, ExecuteMsg, InstantiateMsg, QueryMsg,
@@ -139,10 +139,16 @@ fn simulate_bids_with_2_liq_amounts(
 ) {
     let mut deps = mock_dependencies(&[]);
     instantiate_and_whitelist(&mut deps);
+    let emv_price_raw_uint256 = asset_price *  Uint256::from(1000000u64);
+    let emv_price_raw =  u128::from(emv_price_raw_uint256);
+    
     deps.querier.with_oracle_price(&[(
-        &("col0000".to_string(), "uusd".to_string()),
+        &("col0000".to_string()),
         &(
             asset_price,
+            emv_price_raw as i64,
+            asset_price,
+            emv_price_raw as i64,
             mock_env().block.time.seconds(),
             mock_env().block.time.seconds(),
         ),
@@ -171,7 +177,7 @@ fn simulate_bids_with_2_liq_amounts(
             let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
                 sender: "custody0000".to_string(),
                 amount: Uint128::from(liq_amount_1),
-                msg: to_binary(&Cw20HookMsg::ExecuteBid {
+                msg: to_json_binary(&Cw20HookMsg::ExecuteBid {
                     liquidator: "liquidator00000".to_string(),
                     fee_address: Some("fee0000".to_string()),
                     repay_address: Some("repay0000".to_string()),
@@ -187,7 +193,7 @@ fn simulate_bids_with_2_liq_amounts(
             let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
                 sender: "custody0000".to_string(),
                 amount: Uint128::from(liq_amount_2),
-                msg: to_binary(&Cw20HookMsg::ExecuteBid {
+                msg: to_json_binary(&Cw20HookMsg::ExecuteBid {
                     liquidator: "liquidator00000".to_string(),
                     fee_address: Some("fee0000".to_string()),
                     repay_address: Some("repay0000".to_string()),
@@ -204,7 +210,7 @@ fn simulate_bids_with_2_liq_amounts(
     let mut total_claimed = Uint256::zero();
     let mut total_retracted = Uint256::zero();
     while queried_bids < iterations {
-        let bids_res: BidsResponse = from_binary(
+        let bids_res: BidsResponse = from_json(
             &query(
                 deps.as_ref(),
                 mock_env(),

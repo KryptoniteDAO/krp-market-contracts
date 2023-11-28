@@ -12,6 +12,7 @@ pub mod querier;
 pub mod terraswap;
 pub mod tokens;
 pub mod oracle_pyth;
+pub mod mock_pyth_contract;
 pub mod swap_ext;
 pub mod thirdpart;
 #[cfg(test)]

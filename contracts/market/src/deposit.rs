@@ -1,6 +1,6 @@
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::{
-    attr, to_binary, Addr, BankMsg, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response,
+    attr, to_json_binary, Addr, BankMsg, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response,
     StdResult, Uint128, WasmMsg,
 };
 
@@ -55,7 +55,7 @@ pub fn deposit_stable(
         .add_message(CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: deps.api.addr_humanize(&config.atoken_contract)?.to_string(),
             funds: vec![],
-            msg: to_binary(&Cw20ExecuteMsg::Mint {
+            msg: to_json_binary(&Cw20ExecuteMsg::Mint {
                 recipient: info.sender.to_string(),
                 amount: mint_amount.into(),
             })?,
@@ -129,14 +129,14 @@ pub fn redeem_stable(
             CosmosMsg::Wasm(WasmMsg::Execute {
                 contract_addr: deps.api.addr_humanize(&config.atoken_contract)?.to_string(),
                 funds: vec![],
-                msg: to_binary(&Cw20ExecuteMsg::Burn {
+                msg: to_json_binary(&Cw20ExecuteMsg::Burn {
                     amount: burn_amount,
                 })?,
             }),
             // CosmosMsg::Wasm(WasmMsg::Execute {
             //     contract_addr: deps.api.addr_humanize(&config.stable_contract)?.to_string(),
             //     funds: vec![],
-            //     msg: to_binary(&Cw20ExecuteMsg::Transfer {
+            //     msg: to_json_binary(&Cw20ExecuteMsg::Transfer {
             //         recipient: sender.to_string(),
             //         amount: redeem_amount.into(),
             //     })?,

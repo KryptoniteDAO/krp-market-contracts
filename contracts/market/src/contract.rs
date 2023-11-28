@@ -9,11 +9,11 @@ use crate::deposit::{compute_exchange_rate_raw, deposit_stable, redeem_stable};
 use crate::error::ContractError;
 use crate::querier::{query_borrow_rate, query_target_deposit_rate, query_kpt_emission_rate};
 use crate::response::MsgInstantiateContractResponse;
-use crate::state::{read_config, read_state, store_config, store_state, read_new_owner, store_new_owner, Config, State};
+use crate::state::{read_config, read_state, store_config, store_state, read_new_owner, store_new_owner, Config, State, NewOwnerAddr};
 
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::{
-    attr, from_binary, to_binary, Addr, BankMsg, Binary, CanonicalAddr, Coin, CosmosMsg, Deps,
+    attr, from_json, to_json_binary, Addr, BankMsg, Binary, CanonicalAddr, Coin, CosmosMsg, Deps,
     DepsMut, Env, MessageInfo, Reply, Response, StdError, StdResult, SubMsg, Uint128, WasmMsg,
 };
 use cw20::{Cw20Coin, Cw20ReceiveMsg, MinterResponse};
@@ -82,6 +82,12 @@ pub fn instantiate(
         },
     )?;
 
+    store_new_owner(deps.storage, &{
+        NewOwnerAddr {
+            new_owner_addr:deps.api.addr_canonicalize(&msg.owner_addr)?,
+        }
+    })?;
+
     let mut messages: Vec<SubMsg> = vec![];
 
     let inst_aust_msg: SubMsg = SubMsg::reply_on_success(
@@ -90,7 +96,7 @@ pub fn instantiate(
             code_id: msg.atoken_code_id,
             funds: vec![],
             label: "Kryptonite stable coin share".to_string(),
-            msg: to_binary(&TokenInstantiateMsg {
+            msg: to_json_binary(&TokenInstantiateMsg {
                 //name: format!("Kryptonite stable coin share", msg.stable_denom[1..].to_uppercase()),
                 name: "Kryptonite stable coin share".to_string(),
                 // symbol: format!(
@@ -239,7 +245,7 @@ pub fn receive_cw20(
     cw20_msg: Cw20ReceiveMsg,
 ) -> Result<Response, ContractError> {
     let contract_addr = info.sender;
-    match from_binary(&cw20_msg.msg) {
+    match from_json(&cw20_msg.msg) {
         Ok(Cw20HookMsg::RedeemStable {}) => {
             // only asset contract can execute this message
             let config: Config = read_config(deps.storage)?;
@@ -477,12 +483,12 @@ pub fn execute_epoch_operations(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
-        QueryMsg::Config {} => to_binary(&query_config(deps)?),
-        QueryMsg::State { block_height } => to_binary(&query_state(deps, env, block_height)?),
+        QueryMsg::Config {} => to_json_binary(&query_config(deps)?),
+        QueryMsg::State { block_height } => to_json_binary(&query_state(deps, env, block_height)?),
         QueryMsg::EpochState {
             block_height,
             distributed_interest,
-        } => to_binary(&query_epoch_state(
+        } => to_json_binary(&query_epoch_state(
             deps,
             block_height,
             distributed_interest,
@@ -490,13 +496,13 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::BorrowerInfo {
             borrower,
             block_height,
-        } => to_binary(&query_borrower_info(
+        } => to_json_binary(&query_borrower_info(
             deps,
             env,
             deps.api.addr_validate(&borrower)?,
             block_height,
         )?),
-        QueryMsg::BorrowerInfos { start_after, limit } => to_binary(&query_borrower_infos(
+        QueryMsg::BorrowerInfos { start_after, limit } => to_json_binary(&query_borrower_infos(
             deps,
             optional_addr_validate(deps.api, start_after)?,
             limit,

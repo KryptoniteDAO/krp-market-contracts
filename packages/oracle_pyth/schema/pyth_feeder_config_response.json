@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PythFeederConfigResponse",
+  "type": "object",
+  "required": [
+    "check_feed_age",
+    "is_valid",
+    "price_feed_age",
+    "price_feed_decimal",
+    "price_feed_id",
+    "price_feed_symbol"
+  ],
+  "properties": {
+    "check_feed_age": {
+      "type": "boolean"
+    },
+    "is_valid": {
+      "type": "boolean"
+    },
+    "price_feed_age": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    },
+    "price_feed_decimal": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0.0
+    },
+    "price_feed_id": {
+      "$ref": "#/definitions/Identifier"
+    },
+    "price_feed_symbol": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "Identifier": {
+      "type": "string"
+    }
+  }
+}

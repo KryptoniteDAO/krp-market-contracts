@@ -36,14 +36,14 @@ backtraces = ["cosmwasm-std/backtraces"]
 [dependencies]
 moneymarket = { path = "../../packages/moneymarket", default-features = false, version = "0.3.1"}
 cosmwasm-bignumber =  { path = "../../packages/bignumber", version = "3.0.0"}
-cosmwasm-schema = { version = "1.0.0" }
-cosmwasm-storage = { version = "1.0.0" }
-cosmwasm-std = { version = "1.0.0" }
+cosmwasm-schema = "1.5.0"
+cosmwasm-storage = "1.2.5"
+cosmwasm-std = "1.5.0"
 schemars = "0.8.8"
-serde = { version = "1.0.137", default-features = false, features = ["derive"] }
+serde = { version = "1.0.188", default-features = false, features = ["derive"] }
 thiserror = "1.0.37"
 cw20 = "0.16.0"
-#astroport =  { path = "../../packages/astroport", version = "2.0.0"}
+
 
 [dev-dependencies]
 cosmwasm-schema = { version = "1.0.0" }
@@ -52,9 +52,11 @@ moneymarket-market = { path = "../market" }
 moneymarket-overseer = { path = "../overseer" }
 moneymarket-interest-model = { path = "../interest_model" }
 moneymarket-distribution-model = { path = "../distribution_model" }
-sei-cosmwasm = "0.4.10"
-#terra-multi-test = { git = "https://github.com/astroport-fi/terra-plus.git", tag = "v0.9.1-terra" }
-#terra-multi-test = { git = "https://github.com/astroport-fi/terra-plus.git", version = "0.9.1-terra" }
+cw-multi-test = "0.16.5"
+cw20-legacy = { path = "../../packages/cw20-legacy", version = "1.2.0" , features = ["library"]}
+oracle-pyth = { path = "../../packages/oracle_pyth", version = "0.1.1", features = ["library"] }
+mock-oracle = { path = "../../packages/mock_oracle", version = "0.1.1", features = ["library"] }
+pyth-sdk-cw = { version = "1.0.0" }
 
 [profile.dev]
 overflow-checks = true

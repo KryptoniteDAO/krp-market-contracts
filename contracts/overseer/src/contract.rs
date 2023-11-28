@@ -1,7 +1,7 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    attr, to_binary, Addr, BankMsg, Binary, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo,
+    attr, to_json_binary, Addr, BankMsg, Binary, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo,
     Response, StdResult, Uint128, WasmMsg,
 };
 use std::cmp::{max, min};
@@ -17,7 +17,7 @@ use crate::state::{
     read_config, read_dynrate_config, read_dynrate_state, read_epoch_state, read_whitelist,
     read_whitelist_elem, store_config, store_dynrate_config, store_dynrate_state,
     store_epoch_state, store_whitelist_elem, read_new_owner, store_new_owner, Config, DynrateConfig, DynrateState, EpochState,
-    WhitelistElem, 
+    WhitelistElem, NewOwnerAddr, 
 };
 
 use cosmwasm_bignumber::{Decimal256, Uint256};
@@ -87,7 +87,13 @@ pub fn instantiate(
             prev_yield_reserve: Decimal256::zero(),
         },
     )?;
-
+    
+    store_new_owner(deps.storage, &{
+        NewOwnerAddr {
+            new_owner_addr:deps.api.addr_canonicalize(&msg.owner_addr)?,
+        }
+    })?;
+    
     Ok(Response::default())
 }
 
@@ -589,7 +595,7 @@ pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<Response, Con
         messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: elem.custody_contract.clone(),
             funds: vec![],
-            msg: to_binary(&CustodyExecuteMsg::DistributeRewards {})?,
+            msg: to_json_binary(&CustodyExecuteMsg::DistributeRewards {})?,
         }));
     }
 
@@ -598,7 +604,7 @@ pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<Response, Con
     messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
         contract_addr: env.contract.address.to_string(),
         funds: vec![],
-        msg: to_binary(&ExecuteMsg::UpdateEpochState {
+        msg: to_json_binary(&ExecuteMsg::UpdateEpochState {
             interest_buffer,
             distributed_interest,
         })?,
@@ -661,7 +667,7 @@ pub fn update_epoch_state(
     )?;
 
     // use unchanged rates to build msg
-    let response_msg = to_binary(&MarketExecuteMsg::ExecuteEpochOperations {
+    let response_msg = to_json_binary(&MarketExecuteMsg::ExecuteEpochOperations {
         deposit_rate,
         target_deposit_rate: config.target_deposit_rate,
         threshold_deposit_rate: config.threshold_deposit_rate,
@@ -715,23 +721,23 @@ pub fn fund_reserve(deps: DepsMut, info: MessageInfo) -> Result<Response, Contra
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
-        QueryMsg::Config {} => to_binary(&query_config(deps)?),
-        QueryMsg::EpochState {} => to_binary(&query_state(deps)?),
+        QueryMsg::Config {} => to_json_binary(&query_config(deps)?),
+        QueryMsg::EpochState {} => to_json_binary(&query_state(deps)?),
         QueryMsg::Whitelist {
             collateral_token,
             start_after,
             limit,
-        } => to_binary(&query_whitelist(
+        } => to_json_binary(&query_whitelist(
             deps,
             optional_addr_validate(deps.api, collateral_token)?,
             optional_addr_validate(deps.api, start_after)?,
             limit,
         )?),
-        QueryMsg::Collaterals { borrower } => to_binary(&query_collaterals(
+        QueryMsg::Collaterals { borrower } => to_json_binary(&query_collaterals(
             deps,
             deps.api.addr_validate(&borrower)?,
         )?),
-        QueryMsg::AllCollaterals { start_after, limit } => to_binary(&query_all_collaterals(
+        QueryMsg::AllCollaterals { start_after, limit } => to_json_binary(&query_all_collaterals(
             deps,
             optional_addr_validate(deps.api, start_after)?,
             limit,
@@ -739,12 +745,12 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::BorrowLimit {
             borrower,
             block_time,
-        } => to_binary(&query_borrow_limit(
+        } => to_json_binary(&query_borrow_limit(
             deps,
             deps.api.addr_validate(&borrower)?,
             block_time,
         )?),
-        QueryMsg::DynrateState {} => to_binary(&query_dynrate_state(deps)?),
+        QueryMsg::DynrateState {} => to_json_binary(&query_dynrate_state(deps)?),
     }
 }
 

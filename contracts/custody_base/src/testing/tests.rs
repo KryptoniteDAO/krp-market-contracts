@@ -1,14 +1,14 @@
 use cosmwasm_bignumber::Uint256;
-use cosmwasm_std::{attr, from_binary, to_binary, Api, Coin, CosmosMsg, SubMsg, Uint128, WasmMsg};
+use cosmwasm_std::{attr, from_json, to_json_binary, Api, Coin, CosmosMsg, SubMsg, Uint128, WasmMsg, StdError};
 
 use crate::contract::{execute, instantiate, query};
 use crate::error::ContractError;
 use crate::state::read_borrower_info;
 use crate::testing::mock_querier::mock_dependencies;
 
-use cosmwasm_std::testing::{mock_env, mock_info};
+use cosmwasm_std::testing::{mock_env, mock_info, };
 use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg};
-use moneymarket::custody::{
+use moneymarket::custody_base::{
     BAssetInfo, BorrowerResponse, ConfigResponse, Cw20HookMsg, ExecuteMsg, InstantiateMsg, QueryMsg,
 };
 use moneymarket::liquidation::Cw20HookMsg as LiquidationCw20HookMsg;
@@ -17,7 +17,7 @@ use moneymarket::liquidation::Cw20HookMsg as LiquidationCw20HookMsg;
 fn proper_initialization() {
     let mut deps = mock_dependencies(&[]);
 
-    let msg = InstantiateMsg {
+    let msg: InstantiateMsg = InstantiateMsg {
         owner: "owner".to_string(),
         collateral_token: "token".to_string(),
         overseer_contract: "overseer".to_string(),
@@ -38,7 +38,7 @@ fn proper_initialization() {
     let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
 
     let query_res = query(deps.as_ref(), mock_env(), QueryMsg::Config {}).unwrap();
-    let config_res: ConfigResponse = from_binary(&query_res).unwrap();
+    let config_res: ConfigResponse = from_json(&query_res).unwrap();
     assert_eq!("owner".to_string(), config_res.owner);
     assert_eq!("token".to_string(), config_res.collateral_token);
     assert_eq!("overseer".to_string(), config_res.overseer_contract);
@@ -73,14 +73,24 @@ fn update_config() {
     let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
 
     let msg = ExecuteMsg::UpdateConfig {
-        owner: Some("owner2".to_string()),
         liquidation_contract: Some("liquidation2".to_string()),
     };
     let info = mock_info("owner", &[]);
     execute(deps.as_mut(), mock_env(), info, msg.clone()).unwrap();
 
+    let msg = ExecuteMsg::SetOwner {
+        new_owner_addr: "owner2".to_string(),
+    };
+    let info = mock_info("owner", &[]);
+    execute(deps.as_mut(), mock_env(), info, msg.clone()).unwrap();
+
+    let msg = ExecuteMsg::AcceptOwnership {};
+    let info = mock_info("owner2", &[]);
+    execute(deps.as_mut(), mock_env(), info, msg.clone()).unwrap();
+    
+
     let query_res = query(deps.as_ref(), mock_env(), QueryMsg::Config {}).unwrap();
-    let config_res: ConfigResponse = from_binary(&query_res).unwrap();
+    let config_res: ConfigResponse = from_json(&query_res).unwrap();
     assert_eq!("owner2".to_string(), config_res.owner);
     assert_eq!("token".to_string(), config_res.collateral_token);
     assert_eq!("overseer".to_string(), config_res.overseer_contract);
@@ -100,7 +110,7 @@ fn update_config() {
 #[test]
 fn deposit_collateral() {
     let mut deps = mock_dependencies(&[]);
-
+    
     let msg = InstantiateMsg {
         owner: "owner".to_string(),
         collateral_token: "token".to_string(),
@@ -122,14 +132,14 @@ fn deposit_collateral() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "addr0000".to_string(),
         amount: Uint128::from(100u128),
-        msg: to_binary(&Cw20HookMsg::DepositCollateral {}).unwrap(),
+        msg: to_json_binary(&Cw20HookMsg::DepositCollateral {}).unwrap(),
     });
 
     // failed; cannot directly execute receive message
     let info = mock_info("addr0000", &[]);
     let res = execute(deps.as_mut(), mock_env(), info.clone(), msg.clone());
     match res {
-        Err(ContractError::Unauthorized {}) => (),
+        Err(ContractError::Std(StdError::GenericErr { msg: _ })) => (),
         _ => panic!("DO NOT ENTER HERE"),
     }
 
@@ -137,7 +147,7 @@ fn deposit_collateral() {
     let msg2 = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "addr0000".to_string(),
         amount: Uint128::from(100u128),
-        msg: to_binary("invalid").unwrap(),
+        msg: to_json_binary("invalid").unwrap(),
     });
     let res2 = execute(deps.as_mut(), mock_env(), info, msg2);
     match res2 {
@@ -165,7 +175,7 @@ fn deposit_collateral() {
     )
     .unwrap();
 
-    let borrower_res: BorrowerResponse = from_binary(&query_res).unwrap();
+    let borrower_res: BorrowerResponse = from_json(&query_res).unwrap();
     assert_eq!(
         borrower_res,
         BorrowerResponse {
@@ -194,7 +204,7 @@ fn deposit_collateral() {
         },
     )
     .unwrap();
-    let borrower_res: BorrowerResponse = from_binary(&query_res).unwrap();
+    let borrower_res: BorrowerResponse = from_json(&query_res).unwrap();
     assert_eq!(
         borrower_res,
         BorrowerResponse {
@@ -230,7 +240,7 @@ fn withdraw_collateral() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "addr0000".to_string(),
         amount: Uint128::from(100u128),
-        msg: to_binary(&Cw20HookMsg::DepositCollateral {}).unwrap(),
+        msg: to_json_binary(&Cw20HookMsg::DepositCollateral {}).unwrap(),
     });
 
     let info = mock_info("token", &[]);
@@ -245,10 +255,11 @@ fn withdraw_collateral() {
     );
 
     let msg = ExecuteMsg::WithdrawCollateral {
+        borrower: "addr0000".to_string(),
         amount: Some(Uint256::from(110u64)),
     };
 
-    let info = mock_info("addr0000", &[]);
+    let info = mock_info("overseer", &[]);
     let res = execute(deps.as_mut(), mock_env(), info.clone(), msg);
     match res {
         Err(ContractError::WithdrawAmountExceedsSpendable(100)) => (),
@@ -256,6 +267,7 @@ fn withdraw_collateral() {
     }
 
     let msg = ExecuteMsg::WithdrawCollateral {
+        borrower: "addr0000".to_string(),
         amount: Some(Uint256::from(50u64)),
     };
     let res = execute(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
@@ -272,7 +284,7 @@ fn withdraw_collateral() {
         vec![SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: "token".to_string(),
             funds: vec![],
-            msg: to_binary(&Cw20ExecuteMsg::Transfer {
+            msg: to_json_binary(&Cw20ExecuteMsg::Transfer {
                 recipient: "addr0000".to_string(),
                 amount: Uint128::from(50u128),
             })
@@ -288,7 +300,7 @@ fn withdraw_collateral() {
         },
     )
     .unwrap();
-    let borrower_res: BorrowerResponse = from_binary(&query_res).unwrap();
+    let borrower_res: BorrowerResponse = from_json(&query_res).unwrap();
     assert_eq!(
         borrower_res,
         BorrowerResponse {
@@ -299,6 +311,7 @@ fn withdraw_collateral() {
     );
 
     let msg = ExecuteMsg::WithdrawCollateral {
+        borrower: "addr0000".to_string(),
         amount: Some(Uint256::from(40u128)),
     };
     let _res = execute(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
@@ -310,7 +323,7 @@ fn withdraw_collateral() {
         },
     )
     .unwrap();
-    let borrower_res: BorrowerResponse = from_binary(&query_res).unwrap();
+    let borrower_res: BorrowerResponse = from_json(&query_res).unwrap();
     assert_eq!(
         borrower_res,
         BorrowerResponse {
@@ -321,7 +334,7 @@ fn withdraw_collateral() {
     );
 
     //withdraw with "None" amount
-    let msg = ExecuteMsg::WithdrawCollateral { amount: None };
+    let msg = ExecuteMsg::WithdrawCollateral { amount: None ,  borrower: "addr0000".to_string(),};
     let _res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
     let query_res = query(
         deps.as_ref(),
@@ -331,7 +344,7 @@ fn withdraw_collateral() {
         },
     )
     .unwrap();
-    let borrower_res: BorrowerResponse = from_binary(&query_res).unwrap();
+    let borrower_res: BorrowerResponse = from_json(&query_res).unwrap();
     assert_eq!(
         borrower_res,
         BorrowerResponse {
@@ -367,7 +380,7 @@ fn lock_collateral() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "addr0000".to_string(),
         amount: Uint128::from(100u128),
-        msg: to_binary(&Cw20HookMsg::DepositCollateral {}).unwrap(),
+        msg: to_json_binary(&Cw20HookMsg::DepositCollateral {}).unwrap(),
     });
 
     let info = mock_info("token", &[]);
@@ -388,7 +401,7 @@ fn lock_collateral() {
     let info = mock_info("addr0000", &[]);
     let res = execute(deps.as_mut(), mock_env(), info, msg.clone());
     match res {
-        Err(ContractError::Unauthorized {}) => (),
+        Err(ContractError::Std(StdError::GenericErr { msg: _ })) => (),
         _ => panic!("DO NOT ENTER HERE"),
     }
 
@@ -422,9 +435,10 @@ fn lock_collateral() {
     assert_eq!(spend, Uint256::from(50u128));
 
     let msg = ExecuteMsg::WithdrawCollateral {
+        borrower: "addr0000".to_string(),
         amount: Some(Uint256::from(51u64)),
     };
-    let info = mock_info("addr0000", &[]);
+    let info = mock_info("overseer", &[]);
     let res = execute(deps.as_mut(), mock_env(), info.clone(), msg);
     match res {
         Err(ContractError::WithdrawAmountExceedsSpendable(50)) => (),
@@ -432,6 +446,7 @@ fn lock_collateral() {
     }
 
     let msg = ExecuteMsg::WithdrawCollateral {
+        borrower: "addr0000".to_string(),
         amount: Some(Uint256::from(50u64)),
     };
     let res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
@@ -452,7 +467,7 @@ fn lock_collateral() {
         },
     )
     .unwrap();
-    let borrower_res: BorrowerResponse = from_binary(&query_res).unwrap();
+    let borrower_res: BorrowerResponse = from_json(&query_res).unwrap();
     assert_eq!(
         borrower_res,
         BorrowerResponse {
@@ -509,9 +524,10 @@ fn lock_collateral() {
     assert_eq!(spend, Uint256::from(30u128));
 
     let msg = ExecuteMsg::WithdrawCollateral {
+        borrower: "addr0000".to_string(),
         amount: Some(Uint256::from(30u64)),
     };
-    let info = mock_info("addr0000", &[]);
+    let info = mock_info("overseer", &[]);
     let res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
     assert_eq!(
         res.attributes,
@@ -530,7 +546,7 @@ fn lock_collateral() {
         },
     )
     .unwrap();
-    let borrower_res: BorrowerResponse = from_binary(&query_res).unwrap();
+    let borrower_res: BorrowerResponse = from_json(&query_res).unwrap();
     assert_eq!(
         borrower_res,
         BorrowerResponse {
@@ -582,7 +598,7 @@ fn liquidate_collateral() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "addr0000".to_string(),
         amount: Uint128::from(100u128),
-        msg: to_binary(&Cw20HookMsg::DepositCollateral {}).unwrap(),
+        msg: to_json_binary(&Cw20HookMsg::DepositCollateral {}).unwrap(),
     });
 
     let info = mock_info("token", &[]);
@@ -650,10 +666,10 @@ fn liquidate_collateral() {
         vec![SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: "token".to_string(),
             funds: vec![],
-            msg: to_binary(&Cw20ExecuteMsg::Send {
+            msg: to_json_binary(&Cw20ExecuteMsg::Send {
                 contract: "liquidation".to_string(),
                 amount: Uint128::from(10u128),
-                msg: to_binary(&LiquidationCw20HookMsg::ExecuteBid {
+                msg: to_json_binary(&LiquidationCw20HookMsg::ExecuteBid {
                     liquidator: "liquidator".to_string(),
                     fee_address: Some("overseer".to_string()),
                     repay_address: Some("market".to_string()),

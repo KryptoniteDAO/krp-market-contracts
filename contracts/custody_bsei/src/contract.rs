@@ -1,7 +1,7 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    attr, from_binary, to_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo, Reply, Response,
+    attr, from_json, to_json_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo, Reply, Response,
     StdResult,
 };
 
@@ -11,7 +11,7 @@ use crate::collateral::{
 };
 use crate::distribution::{distribute_hook, distribute_rewards, swap_to_stable_denom};
 use crate::error::ContractError;
-use crate::state::{read_config, read_new_owner, store_config, store_new_owner, Config};
+use crate::state::{read_config, read_new_owner, store_config, store_new_owner, Config, NewOwnerAddr};
 
 use crate::handler::{update_swap_contract, update_swap_denom};
 use cw20::Cw20ReceiveMsg;
@@ -44,6 +44,12 @@ pub fn instantiate(
     };
 
     store_config(deps.storage, &config)?;
+
+    store_new_owner(deps.storage, &{
+        NewOwnerAddr {
+            new_owner_addr: config.owner.clone(),
+        }
+    })?;
 
     Ok(Response::default())
 }
@@ -120,7 +126,7 @@ pub fn receive_cw20(
 ) -> Result<Response, ContractError> {
     let contract_addr = info.sender;
 
-    match from_binary(&cw20_msg.msg) {
+    match from_json(&cw20_msg.msg) {
         Ok(Cw20HookMsg::DepositCollateral {}) => {
             // only asset contract can execute this message
             let config: Config = read_config(deps.storage)?;
@@ -188,12 +194,12 @@ pub fn update_config(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
-        QueryMsg::Config {} => to_binary(&query_config(deps)?),
+        QueryMsg::Config {} => to_json_binary(&query_config(deps)?),
         QueryMsg::Borrower { address } => {
             let addr = deps.api.addr_validate(&address)?;
-            to_binary(&query_borrower(deps, addr)?)
+            to_json_binary(&query_borrower(deps, addr)?)
         }
-        QueryMsg::Borrowers { start_after, limit } => to_binary(&query_borrowers(
+        QueryMsg::Borrowers { start_after, limit } => to_json_binary(&query_borrowers(
             deps,
             optional_addr_validate(deps.api, start_after)?,
             limit,

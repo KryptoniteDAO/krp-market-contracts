@@ -5,7 +5,7 @@ use crate::error::ContractError;
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::testing::{mock_env, mock_info};
 use cosmwasm_std::{
-    attr, from_binary, to_binary, BankMsg, Coin, CosmosMsg, Decimal, StdError, SubMsg, Uint128,
+    attr, from_json, to_json_binary, BankMsg, Coin, CosmosMsg, Decimal, StdError, SubMsg, Uint128,
 };
 use cw20::Cw20ReceiveMsg;
 use moneymarket::liquidation_queue::{
@@ -38,7 +38,7 @@ fn proper_initialization() {
 
     // it worked, let's query the state
     let value: ConfigResponse =
-        from_binary(&query(deps.as_ref(), mock_env(), QueryMsg::Config {}).unwrap()).unwrap();
+        from_json(&query(deps.as_ref(), mock_env(), QueryMsg::Config {}).unwrap()).unwrap();
     assert_eq!(
         value,
         ConfigResponse {
@@ -79,7 +79,6 @@ fn update_config() {
     // update owner
     let info = mock_info("owner0000", &[]);
     let msg = ExecuteMsg::UpdateConfig {
-        owner: Some("owner0001".to_string()),
         oracle_contract: None,
         safe_ratio: None,
         bid_fee: None,
@@ -93,9 +92,20 @@ fn update_config() {
     let res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
     assert_eq!(0, res.messages.len());
 
+
+    let msg = ExecuteMsg::SetOwner {
+        new_owner_addr: "owner0001".to_string(),
+    };
+    let info = mock_info("owner0000", &[]);
+    execute(deps.as_mut(), mock_env(), info, msg.clone()).unwrap();
+
+    let msg = ExecuteMsg::AcceptOwnership {};
+    let info = mock_info("owner0001", &[]);
+    execute(deps.as_mut(), mock_env(), info, msg.clone()).unwrap();
+
     // it worked, let's query the state
     let value: ConfigResponse =
-        from_binary(&query(deps.as_ref(), mock_env(), QueryMsg::Config {}).unwrap()).unwrap();
+        from_json(&query(deps.as_ref(), mock_env(), QueryMsg::Config {}).unwrap()).unwrap();
     assert_eq!(
         value,
         ConfigResponse {
@@ -115,7 +125,6 @@ fn update_config() {
     // Update left items
     let info = mock_info("owner0001", &[]);
     let msg = ExecuteMsg::UpdateConfig {
-        owner: None,
         oracle_contract: Some("oracle0001".to_string()),
         safe_ratio: Some(Decimal256::percent(15)),
         bid_fee: Some(Decimal256::percent(2)),
@@ -131,7 +140,7 @@ fn update_config() {
 
     // it worked, let's query the state
     let value: ConfigResponse =
-        from_binary(&query(deps.as_ref(), mock_env(), QueryMsg::Config {}).unwrap()).unwrap();
+        from_json(&query(deps.as_ref(), mock_env(), QueryMsg::Config {}).unwrap()).unwrap();
     assert_eq!(
         value,
         ConfigResponse {
@@ -151,7 +160,6 @@ fn update_config() {
     // Unauthorized err
     let info = mock_info("owner0000", &[]);
     let msg = ExecuteMsg::UpdateConfig {
-        owner: None,
         oracle_contract: Some("oracle0001".to_string()),
         safe_ratio: Some(Decimal256::percent(1)),
         bid_fee: Some(Decimal256::percent(2)),
@@ -165,7 +173,7 @@ fn update_config() {
     let err = execute(deps.as_mut(), mock_env(), info, msg).unwrap_err();
     assert_eq!(
         err,
-        ContractError::Std(StdError::generic_err("unauthorized"))
+        ContractError::Unauthorized {}
     );
 }
 
@@ -258,7 +266,7 @@ fn submit_bid() {
     let wait_end = env.block.time.plus_seconds(60u64);
     execute(deps.as_mut(), env, info, msg).unwrap();
 
-    let bid_response: BidResponse = from_binary(
+    let bid_response: BidResponse = from_json(
         &query(
             deps.as_ref(),
             mock_env(),
@@ -379,7 +387,7 @@ fn activate_bid() {
     );
     assert!(res.messages.is_empty());
 
-    let bid_response: BidResponse = from_binary(
+    let bid_response: BidResponse = from_json(
         &query(
             deps.as_ref(),
             mock_env(),
@@ -582,9 +590,12 @@ fn execute_bid() {
     let info = mock_info("addr0000", &[]);
     let env = mock_env();
     deps.querier.with_oracle_price(&[(
-        &("asset0000".to_string(), "uusd".to_string()),
+        &("asset0000".to_string()),
         &(
             Decimal256::percent(50),
+            500000,
+            Decimal256::percent(50),
+            500000,
             env.block.time.seconds(),
             env.block.time.seconds(),
         ),
@@ -632,7 +643,7 @@ fn execute_bid() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "addr0001".to_string(),
         amount: Uint128::from(1000000u128),
-        msg: to_binary(&Cw20HookMsg::ExecuteBid {
+        msg: to_json_binary(&Cw20HookMsg::ExecuteBid {
             liquidator: "liquidator00000".to_string(),
             fee_address: Some("fee0000".to_string()),
             repay_address: Some("repay0000".to_string()),
@@ -654,7 +665,7 @@ fn execute_bid() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "custody0000".to_string(), // only custody contract can execute
         amount: Uint128::from(1000000u128),
-        msg: to_binary(&Cw20HookMsg::ExecuteBid {
+        msg: to_json_binary(&Cw20HookMsg::ExecuteBid {
             liquidator: "liquidator0000".to_string(),
             fee_address: Some("fee0000".to_string()),
             repay_address: Some("repay0000".to_string()),
@@ -693,7 +704,7 @@ fn execute_bid() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "custody0000".to_string(),
         amount: Uint128::from(1000000u128),
-        msg: to_binary(&Cw20HookMsg::ExecuteBid {
+        msg: to_json_binary(&Cw20HookMsg::ExecuteBid {
             liquidator: "liquidator0000".to_string(),
             fee_address: None,
             repay_address: None,
@@ -731,7 +742,7 @@ fn execute_bid() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "custody0000".to_string(),
         amount: Uint128::from(2020206u128),
-        msg: to_binary(&Cw20HookMsg::ExecuteBid {
+        msg: to_json_binary(&Cw20HookMsg::ExecuteBid {
             liquidator: "liquidator00000".to_string(),
             fee_address: Some("fee0000".to_string()),
             repay_address: Some("repay0000".to_string()),
@@ -772,9 +783,12 @@ fn claim_liquidations() {
     let info = mock_info("addr0000", &[]);
     let env = mock_env();
     deps.querier.with_oracle_price(&[(
-        &("asset0000".to_string(), "uusd".to_string()),
+        &("asset0000".to_string()),
         &(
             Decimal256::percent(50),
+            500000,
+            Decimal256::percent(50),
+            500000,
             env.block.time.seconds(),
             env.block.time.seconds(),
         ),
@@ -821,7 +835,7 @@ fn claim_liquidations() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "custody0000".to_string(),
         amount: Uint128::from(1000000u128),
-        msg: to_binary(&Cw20HookMsg::ExecuteBid {
+        msg: to_json_binary(&Cw20HookMsg::ExecuteBid {
             liquidator: "liquidator00000".to_string(),
             fee_address: Some("fee0000".to_string()),
             repay_address: Some("repay0000".to_string()),
@@ -888,7 +902,7 @@ fn update_collateral_info() {
     let err = execute(deps.as_mut(), mock_env(), info, msg.clone()).unwrap_err();
     assert_eq!(
         err,
-        ContractError::Std(StdError::generic_err("unauthorized"))
+        ContractError::Unauthorized {}
     );
 
     // successfull attempt
@@ -896,7 +910,7 @@ fn update_collateral_info() {
     execute(deps.as_mut(), mock_env(), info, msg).unwrap();
 
     // query col info
-    let collateral_info_response: CollateralInfoResponse = from_binary(
+    let collateral_info_response: CollateralInfoResponse = from_json(
         &query(
             deps.as_ref(),
             mock_env(),

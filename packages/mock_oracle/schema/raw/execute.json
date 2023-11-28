@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ExecuteMsg",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": [
+        "update_price_feed"
+      ],
+      "properties": {
+        "update_price_feed": {
+          "type": "object",
+          "required": [
+            "id",
+            "price"
+          ],
+          "properties": {
+            "id": {
+              "$ref": "#/definitions/Identifier"
+            },
+            "price": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  ],
+  "definitions": {
+    "Identifier": {
+      "type": "string"
+    }
+  }
+}

@@ -6,7 +6,7 @@ use crate::state::{
 };
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::{
-    attr, to_binary, Addr, BankMsg, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response,
+    attr, to_json_binary, Addr, BankMsg, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response,
     StdError, StdResult, SubMsg, WasmMsg,
 };
 
@@ -59,7 +59,7 @@ pub fn lock_collateral(
                 .addr_humanize(&whitelist_elem.custody_contract)?
                 .to_string(),
             funds: vec![],
-            msg: to_binary(&CustodyExecuteMsg::LockCollateral {
+            msg: to_json_binary(&CustodyExecuteMsg::LockCollateral {
                 borrower: borrower.clone(),
                 amount: collateral.1,
             })?,
@@ -74,7 +74,7 @@ pub fn lock_collateral(
 
     Ok(Response::new().add_messages(messages).add_attributes(vec![
         attr("action", "lock_collateral"),
-        attr("borrower", info.sender),
+        attr("borrower", borrower.to_string()),
         attr("collaterals", collateral_logs.join(",")),
     ]))
 }
@@ -121,7 +121,7 @@ pub fn unlock_collateral(
                 .addr_humanize(&whitelist_elem.custody_contract)?
                 .to_string(),
             funds: vec![],
-            msg: to_binary(&CustodyExecuteMsg::UnlockCollateral {
+            msg: to_json_binary(&CustodyExecuteMsg::UnlockCollateral {
                 borrower: borrower.to_string(),
                 amount: collateral.1,
             })?,
@@ -133,7 +133,7 @@ pub fn unlock_collateral(
                 .addr_humanize(&whitelist_elem.custody_contract)?
                 .to_string(),
             funds: vec![],
-            msg: to_binary(&CustodyExecuteMsg::WithdrawCollateral {
+            msg: to_json_binary(&CustodyExecuteMsg::WithdrawCollateral {
                 borrower: borrower.to_string(),
                 amount: Some(collateral.1),
             })?,
@@ -214,7 +214,7 @@ pub fn liquidate_collateral(
                     .addr_humanize(&whitelist_elem.custody_contract)?
                     .to_string(),
                 funds: vec![],
-                msg: to_binary(&CustodyExecuteMsg::LiquidateCollateral {
+                msg: to_json_binary(&CustodyExecuteMsg::LiquidateCollateral {
                     liquidator: info.sender.to_string(),
                     borrower: borrower.to_string(),
                     amount: collateral.1,
@@ -229,7 +229,7 @@ pub fn liquidate_collateral(
         .add_message(CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: market_contract.to_string(),
             funds: vec![],
-            msg: to_binary(&MarketExecuteMsg::RepayStableFromLiquidation {
+            msg: to_json_binary(&MarketExecuteMsg::RepayStableFromLiquidation {
                 borrower: borrower.to_string(),
                 prev_balance,
             })?,
@@ -274,7 +274,7 @@ pub fn repay_stable_from_yield_reserve(
         CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: market.to_string(),
             funds: vec![],
-            msg: to_binary(&MarketExecuteMsg::RepayStableFromLiquidation {
+            msg: to_json_binary(&MarketExecuteMsg::RepayStableFromLiquidation {
                 borrower: borrower.to_string(),
                 prev_balance,
             })?,

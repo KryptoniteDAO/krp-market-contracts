@@ -3,7 +3,6 @@
   "title": "ConfigResponse",
   "type": "object",
   "required": [
-    "kpt_purchase_factor",
     "buffer_distribution_factor",
     "collector_contract",
     "dyn_rate_epoch",
@@ -12,6 +11,7 @@
     "dyn_rate_min",
     "dyn_rate_yr_increase_expectation",
     "epoch_period",
+    "kpt_purchase_factor",
     "liquidation_contract",
     "market_contract",
     "oracle_contract",
@@ -22,9 +22,6 @@
     "threshold_deposit_rate"
   ],
   "properties": {
-    "kpt_purchase_factor": {
-      "$ref": "#/definitions/Decimal256"
-    },
     "buffer_distribution_factor": {
       "$ref": "#/definitions/Decimal256"
     },
@@ -52,6 +49,9 @@
       "type": "integer",
       "format": "uint64",
       "minimum": 0.0
+    },
+    "kpt_purchase_factor": {
+      "$ref": "#/definitions/Decimal256"
     },
     "liquidation_contract": {
       "type": "string"

@@ -1,7 +1,7 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    attr, from_binary, to_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo, Response,
+    attr, from_json, to_json_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo, Response,
     StdError, StdResult,
 };
 
@@ -10,7 +10,9 @@ use crate::collateral::{
     unlock_collateral, withdraw_collateral,
 };
 use crate::error::ContractError;
-use crate::state::{read_config, store_config, Config, read_new_owner, store_new_owner};
+use crate::state::{
+    read_config, read_new_owner, store_config, store_new_owner, Config, NewOwnerAddr,
+};
 
 use cw20::Cw20ReceiveMsg;
 use moneymarket::common::optional_addr_validate;
@@ -40,6 +42,12 @@ pub fn instantiate(
     };
 
     store_config(deps.storage, &config)?;
+
+    store_new_owner(deps.storage, &{
+        NewOwnerAddr {
+            new_owner_addr: config.owner.clone(),
+        }
+    })?;
 
     Ok(Response::default())
 }
@@ -89,13 +97,11 @@ pub fn execute(
             let borrower_addr = deps.api.addr_validate(&borrower)?;
             liquidate_collateral(deps, info, liquidator_addr, borrower_addr, amount)
         }
-        ExecuteMsg::UpdateSwapContract {
-            swap_contract:_,
-        } => Ok(Response::new()),
+        ExecuteMsg::UpdateSwapContract { swap_contract: _ } => Ok(Response::new()),
         ExecuteMsg::UpdateSwapDenom {
-            swap_denom:_,
-            is_add:_
-        }=> Ok(Response::new()),
+            swap_denom: _,
+            is_add: _,
+        } => Ok(Response::new()),
     }
 }
 
@@ -105,7 +111,7 @@ pub fn receive_cw20(
     cw20_msg: Cw20ReceiveMsg,
 ) -> Result<Response, ContractError> {
     let contract_addr = info.sender;
-    match from_binary(&cw20_msg.msg) {
+    match from_json(&cw20_msg.msg) {
         Ok(Cw20HookMsg::DepositCollateral {}) => {
             // only asset contract can execute this message
             let config: Config = read_config(deps.storage)?;
@@ -122,7 +128,6 @@ pub fn receive_cw20(
         _ => Err(ContractError::MissingDepositCollateralHook {}),
     }
 }
-
 
 pub fn set_new_owner(
     deps: DepsMut,
@@ -155,7 +160,6 @@ pub fn accept_ownership(deps: DepsMut, info: MessageInfo) -> Result<Response, Co
     Ok(Response::default())
 }
 
-
 pub fn update_config(
     deps: DepsMut,
     info: MessageInfo,
@@ -178,12 +182,12 @@ pub fn update_config(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
-        QueryMsg::Config {} => to_binary(&query_config(deps)?),
+        QueryMsg::Config {} => to_json_binary(&query_config(deps)?),
         QueryMsg::Borrower { address } => {
             let addr = deps.api.addr_validate(&address)?;
-            to_binary(&query_borrower(deps, addr)?)
+            to_json_binary(&query_borrower(deps, addr)?)
         }
-        QueryMsg::Borrowers { start_after, limit } => to_binary(&query_borrowers(
+        QueryMsg::Borrowers { start_after, limit } => to_json_binary(&query_borrowers(
             deps,
             optional_addr_validate(deps.api, start_after)?,
             limit,
@@ -212,7 +216,7 @@ pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
         stable_denom: config.stable_denom,
         basset_info: config.basset_info,
         swap_contract: None,
-        swap_denoms: None
+        swap_denoms: None,
     })
 }
 

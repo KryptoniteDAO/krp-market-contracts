@@ -9,13 +9,13 @@ use crate::query::{
     query_config, query_liquidation_amount,
 };
 use crate::state::{
-    read_collateral_info, read_config, store_collateral_info, store_config, CollateralInfo, Config, read_new_owner, store_new_owner,
+    read_collateral_info, read_config, store_collateral_info, store_config, CollateralInfo, Config, read_new_owner, store_new_owner, NewOwnerAddr,
 };
 
 use crate::error::ContractError;
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::{
-    from_binary, to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError, StdResult, Addr,
+    from_json, to_json_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError, StdResult, Addr,
 };
 use cw20::Cw20ReceiveMsg;
 use moneymarket::liquidation_queue::{Cw20HookMsg, ExecuteMsg, InstantiateMsg, QueryMsg};
@@ -45,6 +45,12 @@ pub fn instantiate(
             overseer: deps.api.addr_canonicalize(&msg.overseer)?,
         },
     )?;
+
+    store_new_owner(deps.storage, &{
+        NewOwnerAddr {
+            new_owner_addr: deps.api.addr_canonicalize(&msg.owner)?,
+        }
+    })?;
 
     Ok(Response::new())
 }
@@ -148,7 +154,7 @@ pub fn receive_cw20(
     cw20_msg: Cw20ReceiveMsg,
 ) -> Result<Response, ContractError> {
     let contract_addr = info.sender.clone();
-    match from_binary(&cw20_msg.msg) {
+    match from_json(&cw20_msg.msg) {
         //contract liquidation_queue received collatera token
         Ok(Cw20HookMsg::ExecuteBid {
             liquidator,
@@ -350,13 +356,13 @@ pub fn update_collateral_info(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
-        QueryMsg::Config {} => to_binary(&query_config(deps)?),
+        QueryMsg::Config {} => to_json_binary(&query_config(deps)?),
         QueryMsg::LiquidationAmount {
             borrow_amount,
             borrow_limit,
             collaterals,
             collateral_prices,
-        } => to_binary(&query_liquidation_amount(
+        } => to_json_binary(&query_liquidation_amount(
             deps,
             borrow_amount,
             borrow_limit,
@@ -364,15 +370,15 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
             collateral_prices,
         )?),
         QueryMsg::CollateralInfo { collateral_token } => {
-            to_binary(&query_collateral_info(deps, collateral_token)?)
+            to_json_binary(&query_collateral_info(deps, collateral_token)?)
         }
-        QueryMsg::Bid { bid_idx } => to_binary(&query_bid(deps, bid_idx)?),
+        QueryMsg::Bid { bid_idx } => to_json_binary(&query_bid(deps, bid_idx)?),
         QueryMsg::BidsByUser {
             collateral_token,
             bidder,
             start_after,
             limit,
-        } => to_binary(&query_bids_by_user(
+        } => to_json_binary(&query_bids_by_user(
             deps,
             collateral_token,
             bidder,
@@ -382,12 +388,12 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::BidPool {
             collateral_token,
             bid_slot,
-        } => to_binary(&query_bid_pool(deps, collateral_token, bid_slot)?),
+        } => to_json_binary(&query_bid_pool(deps, collateral_token, bid_slot)?),
         QueryMsg::BidPoolsByCollateral {
             collateral_token,
             start_after,
             limit,
-        } => to_binary(&query_bid_pools(
+        } => to_json_binary(&query_bid_pools(
             deps,
             collateral_token,
             start_after,

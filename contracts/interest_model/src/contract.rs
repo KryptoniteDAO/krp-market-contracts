@@ -1,11 +1,11 @@
 use crate::error::ContractError;
-use crate::state::{read_config, store_config, Config, read_new_owner, store_new_owner};
+use crate::state::{read_config, store_config, Config, read_new_owner, store_new_owner, NewOwnerAddr};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 
 use cosmwasm_bignumber::Decimal256;
 use cosmwasm_bignumber::Uint256;
-use cosmwasm_std::{to_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
+use cosmwasm_std::{to_json_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
 use moneymarket::interest_model::{
     BorrowRateResponse, ConfigResponse, ExecuteMsg, InstantiateMsg, QueryMsg,
 };
@@ -25,6 +25,12 @@ pub fn instantiate(
             interest_multiplier: msg.interest_multiplier,
         },
     )?;
+
+    store_new_owner(deps.storage, &{
+        NewOwnerAddr {
+            new_owner_addr: deps.api.addr_canonicalize(&msg.owner)?,
+        }
+    })?;
 
     Ok(Response::default())
 }
@@ -113,12 +119,12 @@ pub fn update_config(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
-        QueryMsg::Config {} => to_binary(&query_config(deps)?),
+        QueryMsg::Config {} => to_json_binary(&query_config(deps)?),
         QueryMsg::BorrowRate {
             market_balance,
             total_liabilities,
             total_reserves,
-        } => to_binary(&query_borrow_rate(
+        } => to_json_binary(&query_borrow_rate(
             deps,
             market_balance,
             total_liabilities,

@@ -1,7 +1,7 @@
 use crate::contract::{execute, instantiate, query};
 use crate::error::ContractError;
 use cosmwasm_bignumber::{Decimal256, Uint256};
-use cosmwasm_std::from_binary;
+use cosmwasm_std::from_json;
 use cosmwasm_std::testing::{mock_dependencies_with_balance, mock_env, mock_info};
 use moneymarket::interest_model::{
     BorrowRateResponse, ConfigResponse, ExecuteMsg, InstantiateMsg, QueryMsg,
@@ -25,7 +25,7 @@ fn proper_initialization() {
 
     // it worked, let's query the state
     let res = query(deps.as_ref(), mock_env(), QueryMsg::Config {}).unwrap();
-    let value: ConfigResponse = from_binary(&res).unwrap();
+    let value: ConfigResponse = from_json(&res).unwrap();
     assert_eq!("owner0000", value.owner.as_str());
     assert_eq!("0.1", &value.base_rate.to_string());
     assert_eq!("0.1", &value.interest_multiplier.to_string());
@@ -36,7 +36,7 @@ fn proper_initialization() {
         total_reserves: Decimal256::from_uint256(100000u128),
     };
     let res = query(deps.as_ref(), mock_env(), query_msg).unwrap();
-    let value: BorrowRateResponse = from_binary(&res).unwrap();
+    let value: BorrowRateResponse = from_json(&res).unwrap();
     // utilization_ratio = 0.35714285714285714
     // borrow_rate = 0.035714285 + 0.1
     assert_eq!("0.135714285714285714", &value.rate.to_string());
@@ -47,7 +47,7 @@ fn proper_initialization() {
         total_reserves: Decimal256::zero(),
     };
     let res = query(deps.as_ref(), mock_env(), query_msg).unwrap();
-    let value: BorrowRateResponse = from_binary(&res).unwrap();
+    let value: BorrowRateResponse = from_json(&res).unwrap();
     assert_eq!("0.1", &value.rate.to_string());
 }
 
@@ -67,7 +67,6 @@ fn update_config() {
     // update owner
     let info = mock_info("owner0000", &[]);
     let msg = ExecuteMsg::UpdateConfig {
-        owner: Some("owner0001".to_string()),
         base_rate: None,
         interest_multiplier: None,
     };
@@ -75,9 +74,20 @@ fn update_config() {
     let res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
     assert_eq!(0, res.messages.len());
 
+    let msg = ExecuteMsg::SetOwner {
+        new_owner_addr: "owner0001".to_string(),
+    };
+    let info = mock_info("owner0000", &[]);
+    execute(deps.as_mut(), mock_env(), info, msg.clone()).unwrap();
+
+    let msg = ExecuteMsg::AcceptOwnership {};
+    let info = mock_info("owner0001", &[]);
+    execute(deps.as_mut(), mock_env(), info, msg.clone()).unwrap();
+
+
     // it worked, let's query the state
     let res = query(deps.as_ref(), mock_env(), QueryMsg::Config {}).unwrap();
-    let value: ConfigResponse = from_binary(&res).unwrap();
+    let value: ConfigResponse = from_json(&res).unwrap();
     assert_eq!("owner0001", value.owner.as_str());
     assert_eq!("0.1", &value.base_rate.to_string());
     assert_eq!("0.1", &value.interest_multiplier.to_string());
@@ -85,7 +95,6 @@ fn update_config() {
     // Unauthorized err
     let info = mock_info("owner0000", &[]);
     let msg = ExecuteMsg::UpdateConfig {
-        owner: None,
         base_rate: Some(Decimal256::percent(1)),
         interest_multiplier: Some(Decimal256::percent(1)),
     };

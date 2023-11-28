@@ -1,10 +1,11 @@
+use moneymarket::common::{QueryTaxMsg, QueryTaxWrapper, TaxRateResponse, TaxCapResponse};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::testing::{MockApi, MockQuerier, MockStorage, MOCK_CONTRACT_ADDR};
 use cosmwasm_std::{
-    from_binary, from_slice, to_binary, Addr, Api, CanonicalAddr, Coin, ContractResult, Decimal,
+    from_json, to_json_binary, Addr, Api, CanonicalAddr, Coin, ContractResult, Decimal,
     OwnedDeps, Querier, QuerierResult, QueryRequest, SystemError, SystemResult, Uint128, WasmQuery,
 };
 use cosmwasm_storage::to_length_prefixed;
@@ -14,7 +15,7 @@ use cw20::TokenInfoResponse;
 use moneymarket::distribution_model::KptEmissionRateResponse;
 use moneymarket::interest_model::BorrowRateResponse;
 use moneymarket::overseer::{BorrowLimitResponse, ConfigResponse};
-use sei_cosmwasm::{SeiQuery, SeiQueryWrapper, SeiRoute};
+
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -60,7 +61,7 @@ pub fn mock_dependencies(
 }
 
 pub struct WasmMockQuerier {
-    base: MockQuerier<SeiQueryWrapper>,
+    base: MockQuerier<QueryTaxWrapper>,
     token_querier: TokenQuerier,
     tax_querier: TaxQuerier,
     borrow_rate_querier: BorrowRateQuerier,
@@ -171,7 +172,7 @@ pub(crate) fn borrow_limit_to_map(
 impl Querier for WasmMockQuerier {
     fn raw_query(&self, bin_request: &[u8]) -> QuerierResult {
         // MockQuerier doesn't support Custom, so we ignore it completely here
-        let request: QueryRequest<SeiQueryWrapper> = match from_slice(bin_request) {
+        let request: QueryRequest<QueryTaxWrapper> = match from_json(bin_request) {
             Ok(v) => v,
             Err(e) => {
                 return SystemResult::Err(SystemError::InvalidRequest {
@@ -185,42 +186,39 @@ impl Querier for WasmMockQuerier {
 }
 
 impl WasmMockQuerier {
-    pub fn handle_query(&self, request: &QueryRequest<SeiQueryWrapper>) -> QuerierResult {
+    pub fn handle_query(&self, request: &QueryRequest<QueryTaxWrapper>) -> QuerierResult {
         match &request {
-            // QueryRequest::Custom(SeiQueryWrapper { route, query_data }) => {
-            //     if &SeiRoute::Treasury == route {
-            //         match query_data {
-            //             SeiQuery::TaxRate {} => {
-            //                 let res = TaxRateResponse {
-            //                     rate: self.tax_querier.rate,
-            //                 };
-            //                 SystemResult::Ok(ContractResult::from(to_binary(&res)))
-            //             }
-            //             SeiQuery::TaxCap { denom } => {
-            //                 let cap = self
-            //                     .tax_querier
-            //                     .caps
-            //                     .get(denom)
-            //                     .copied()
-            //                     .unwrap_or_default();
-            //                 let res = TaxCapResponse { cap };
-            //                 SystemResult::Ok(ContractResult::from(to_binary(&res)))
-            //             }
-            //             _ => panic!("DO NOT ENTER HERE"),
-            //         }
-            //     } else {
-            //         panic!("DO NOT ENTER HERE")
-            //     }
-            // }
+            QueryRequest::Custom(QueryTaxWrapper { query_data }) => {
+                match query_data {
+                    QueryTaxMsg::TaxRate {} => {
+                        let res = TaxRateResponse {
+                            rate: self.tax_querier.rate,
+                        };
+                        SystemResult::Ok(ContractResult::from(to_json_binary(&res)))
+                    }
+                    QueryTaxMsg::TaxCap { denom } => {
+                        let cap = self
+                            .tax_querier
+                            .caps
+                            .get(denom)
+                            .copied()
+                            .unwrap_or_default();
+                        let res = TaxCapResponse { cap };
+                        SystemResult::Ok(ContractResult::from(to_json_binary(&res)))
+                    }
+                    _ => panic!("DO NOT ENTER HERE"),
+                }
+            } 
+            
             QueryRequest::Wasm(WasmQuery::Smart { contract_addr, msg }) => {
-                match from_binary(msg).unwrap() {
+                match from_json(msg).unwrap() {
                     QueryMsg::BorrowRate {
                         market_balance: _,
                         total_liabilities: _,
                         total_reserves: _,
                     } => {
                         match self.borrow_rate_querier.borrower_rate.get(contract_addr) {
-                            Some(v) => SystemResult::Ok(ContractResult::from(to_binary(
+                            Some(v) => SystemResult::Ok(ContractResult::from(to_json_binary(
                                 &BorrowRateResponse { rate: *v },
                             ))),
                             None => SystemResult::Err(SystemError::InvalidRequest {
@@ -233,7 +231,7 @@ impl WasmMockQuerier {
                         borrower,
                         block_time: _,
                     } => match self.borrow_limit_querier.borrow_limit.get(&borrower) {
-                        Some(v) => SystemResult::Ok(ContractResult::from(to_binary(
+                        Some(v) => SystemResult::Ok(ContractResult::from(to_json_binary(
                             &BorrowLimitResponse {
                                 borrower,
                                 borrow_limit: *v,
@@ -249,13 +247,13 @@ impl WasmMockQuerier {
                         target_deposit_rate: _,
                         threshold_deposit_rate: _,
                         current_emission_rate: _,
-                    } => SystemResult::Ok(ContractResult::from(to_binary(
+                    } => SystemResult::Ok(ContractResult::from(to_json_binary(
                         &KptEmissionRateResponse {
                             emission_rate: Decimal256::from_uint256(5u64),
                         },
                     ))),
                     QueryMsg::Config {} => {
-                        SystemResult::Ok(ContractResult::from(to_binary(&ConfigResponse {
+                        SystemResult::Ok(ContractResult::from(to_json_binary(&ConfigResponse {
                             owner_addr: "".to_string(),
                             oracle_contract: "".to_string(),
                             market_contract: "".to_string(),
@@ -294,7 +292,7 @@ impl WasmMockQuerier {
                             total_supply += balance.1;
                         }
 
-                        SystemResult::Ok(ContractResult::from(to_binary(&TokenInfoResponse {
+                        SystemResult::Ok(ContractResult::from(to_json_binary(&TokenInfoResponse {
                             name: "mAPPL".to_string(),
                             symbol: "mAPPL".to_string(),
                             decimals: 6,
@@ -336,7 +334,7 @@ impl WasmMockQuerier {
                             })
                         }
                     };
-                    SystemResult::Ok(ContractResult::from(to_binary(&balance)))
+                    SystemResult::Ok(ContractResult::from(to_json_binary(&balance)))
                 } else {
                     panic!("DO NOT ENTER HERE")
                 }
@@ -347,7 +345,7 @@ impl WasmMockQuerier {
 }
 
 impl WasmMockQuerier {
-    pub fn new(base: MockQuerier<SeiQueryWrapper>) -> Self {
+    pub fn new(base: MockQuerier<QueryTaxWrapper>) -> Self {
         WasmMockQuerier {
             base,
             token_querier: TokenQuerier::default(),

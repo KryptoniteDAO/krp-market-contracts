@@ -1,6 +1,6 @@
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::{
-    attr, Addr, BankMsg, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response, StdResult, WasmMsg, to_binary,
+    attr, Addr, BankMsg, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response, StdResult, WasmMsg, to_json_binary,
 };
 
 use moneymarket::interest_model::BorrowRateResponse;
@@ -225,7 +225,7 @@ pub fn claim_rewards(
                 .addr_humanize(&config.distributor_contract)?
                 .to_string(),
             funds: vec![],
-            msg: to_binary(&ThirdpartExecuteMsg::Mint {
+            msg: to_json_binary(&ThirdpartExecuteMsg::Mint {
                 recipient: if let Some(to) = to {
                     to.to_string()
                 } else {

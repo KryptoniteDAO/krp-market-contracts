@@ -2,7 +2,7 @@ use crate::contract::{execute, instantiate, query};
 use crate::testing::mock_querier::mock_dependencies;
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::testing::{mock_env, mock_info};
-use cosmwasm_std::{from_binary, Coin, Decimal, Uint128};
+use cosmwasm_std::{from_json, Coin, Decimal, Uint128};
 use moneymarket::liquidation_queue::{
     BidPoolResponse, BidPoolsResponse, BidResponse, BidsResponse, CollateralInfoResponse,
     ExecuteMsg, InstantiateMsg, LiquidationAmountResponse, QueryMsg,
@@ -93,7 +93,7 @@ fn query_liquidation_amount() {
     };
 
     let res = query(deps.as_ref(), mock_env(), msg).unwrap();
-    let res: LiquidationAmountResponse = from_binary(&res).unwrap();
+    let res: LiquidationAmountResponse = from_json(&res).unwrap();
     assert_eq!(
         res,
         LiquidationAmountResponse {
@@ -109,7 +109,7 @@ fn query_liquidation_amount() {
     };
 
     let res = query(deps.as_ref(), mock_env(), msg).unwrap();
-    let res: LiquidationAmountResponse = from_binary(&res).unwrap();
+    let res: LiquidationAmountResponse = from_json(&res).unwrap();
     assert_eq!(
         res,
         LiquidationAmountResponse {
@@ -135,7 +135,7 @@ fn query_liquidation_amount() {
     // fee_deductor = 0.931095
     // liquidation_ratio = 0.3580014213
     let res = query(deps.as_ref(), mock_env(), query_msg).unwrap();
-    let res: LiquidationAmountResponse = from_binary(&res).unwrap();
+    let res: LiquidationAmountResponse = from_json(&res).unwrap();
     assert_eq!(
         res,
         LiquidationAmountResponse {
@@ -206,7 +206,7 @@ fn query_bids() {
     };
     execute(deps.as_mut(), mock_env(), info, msg).unwrap();
 
-    let bid_response: BidResponse = from_binary(
+    let bid_response: BidResponse = from_json(
         &query(
             deps.as_ref(),
             mock_env(),
@@ -234,7 +234,7 @@ fn query_bids() {
         }
     );
 
-    let bids_response: BidsResponse = from_binary(
+    let bids_response: BidsResponse = from_json(
         &query(
             deps.as_ref(),
             mock_env(),
@@ -295,7 +295,7 @@ fn query_bids() {
         }
     );
 
-    let bids_response: BidsResponse = from_binary(
+    let bids_response: BidsResponse = from_json(
         &query(
             deps.as_ref(),
             mock_env(),
@@ -387,7 +387,7 @@ fn query_bid_pools() {
     };
     execute(deps.as_mut(), mock_env(), info, msg).unwrap();
 
-    let bid_pool_response: BidPoolResponse = from_binary(
+    let bid_pool_response: BidPoolResponse = from_json(
         &query(
             deps.as_ref(),
             mock_env(),
@@ -411,7 +411,7 @@ fn query_bid_pools() {
         }
     );
 
-    let bid_pools_response: BidPoolsResponse = from_binary(
+    let bid_pools_response: BidPoolsResponse = from_json(
         &query(
             deps.as_ref(),
             mock_env(),
@@ -456,7 +456,7 @@ fn query_bid_pools() {
         }
     );
 
-    let bid_pools_response: BidPoolsResponse = from_binary(
+    let bid_pools_response: BidPoolsResponse = from_json(
         &query(
             deps.as_ref(),
             mock_env(),
@@ -519,7 +519,7 @@ fn query_collateral_info() {
     let info = mock_info("owner0000", &[]);
     execute(deps.as_mut(), mock_env(), info, msg).unwrap();
 
-    let collateral_info_response: CollateralInfoResponse = from_binary(
+    let collateral_info_response: CollateralInfoResponse = from_json(
         &query(
             deps.as_ref(),
             mock_env(),

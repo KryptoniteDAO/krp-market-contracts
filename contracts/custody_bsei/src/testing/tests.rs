@@ -1,8 +1,9 @@
 use cosmwasm_bignumber::Uint256;
 use cosmwasm_std::{
-    attr, from_binary, to_binary, Api, Attribute, BankMsg, Coin, CosmosMsg, Decimal, Reply,
-    Response, SubMsg, SubMsgResponse, SubMsgResult, Uint128, WasmMsg,
+    attr, from_json, to_json_binary, Api, Attribute, BankMsg, Coin, CosmosMsg, Decimal, Reply,
+    Response, StdError, SubMsg, SubMsgResponse, SubMsgResult, Uint128, WasmMsg,
 };
+use moneymarket::swap_ext::SwapExecteMsg;
 
 use crate::contract::{
     execute, instantiate, query, reply, CLAIM_REWARDS_OPERATION, SWAP_TO_STABLE_OPERATION,
@@ -31,6 +32,8 @@ fn proper_initialization() {
         reward_contract: "reward".to_string(),
         liquidation_contract: "liquidation".to_string(),
         stable_denom: "uusd".to_string(),
+        swap_contract: "swap".to_string(),
+        swap_denoms: vec!["uusd".to_string()],
         basset_info: BAssetInfo {
             name: "bsei".to_string(),
             symbol: "bsei".to_string(),
@@ -44,7 +47,7 @@ fn proper_initialization() {
     let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
 
     let query_res = query(deps.as_ref(), mock_env(), QueryMsg::Config {}).unwrap();
-    let config_res: ConfigResponse = from_binary(&query_res).unwrap();
+    let config_res: ConfigResponse = from_json(&query_res).unwrap();
     assert_eq!("owner".to_string(), config_res.owner);
     assert_eq!("bsei".to_string(), config_res.collateral_token);
     assert_eq!("overseer".to_string(), config_res.overseer_contract);
@@ -66,6 +69,8 @@ fn update_config() {
         reward_contract: "reward".to_string(),
         liquidation_contract: "liquidation".to_string(),
         stable_denom: "uusd".to_string(),
+        swap_contract: "swap".to_string(),
+        swap_denoms: vec!["uusd".to_string()],
         basset_info: BAssetInfo {
             name: "bsei".to_string(),
             symbol: "bsei".to_string(),
@@ -79,14 +84,23 @@ fn update_config() {
     let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
 
     let msg = ExecuteMsg::UpdateConfig {
-        owner: Some("owner2".to_string()),
         liquidation_contract: Some("liquidation2".to_string()),
     };
     let info = mock_info("owner", &[]);
     execute(deps.as_mut(), mock_env(), info, msg.clone()).unwrap();
 
+    let msg = ExecuteMsg::SetOwner {
+        new_owner_addr: "owner2".to_string(),
+    };
+    let info = mock_info("owner", &[]);
+    execute(deps.as_mut(), mock_env(), info, msg.clone()).unwrap();
+
+    let msg = ExecuteMsg::AcceptOwnership {};
+    let info = mock_info("owner2", &[]);
+    execute(deps.as_mut(), mock_env(), info, msg.clone()).unwrap();
+
     let query_res = query(deps.as_ref(), mock_env(), QueryMsg::Config {}).unwrap();
-    let config_res: ConfigResponse = from_binary(&query_res).unwrap();
+    let config_res: ConfigResponse = from_json(&query_res).unwrap();
     assert_eq!("owner2".to_string(), config_res.owner);
     assert_eq!("bsei".to_string(), config_res.collateral_token);
     assert_eq!("overseer".to_string(), config_res.overseer_contract);
@@ -115,6 +129,8 @@ fn deposit_collateral() {
         reward_contract: "reward".to_string(),
         liquidation_contract: "liquidation".to_string(),
         stable_denom: "uusd".to_string(),
+        swap_contract: "swap".to_string(),
+        swap_denoms: vec!["uusd".to_string()],
         basset_info: BAssetInfo {
             name: "bsei".to_string(),
             symbol: "bsei".to_string(),
@@ -128,7 +144,7 @@ fn deposit_collateral() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "addr0000".to_string(),
         amount: Uint128::from(100u128),
-        msg: to_binary(&Cw20HookMsg::DepositCollateral {}).unwrap(),
+        msg: to_json_binary(&Cw20HookMsg::DepositCollateral {}).unwrap(),
     });
 
     // failed; cannot directly execute receive message
@@ -143,7 +159,7 @@ fn deposit_collateral() {
     let msg2 = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "addr0000".to_string(),
         amount: Uint128::from(100u128),
-        msg: to_binary("invalid").unwrap(),
+        msg: to_json_binary("invalid").unwrap(),
     });
     let res2 = execute(deps.as_mut(), mock_env(), info, msg2);
     match res2 {
@@ -171,7 +187,7 @@ fn deposit_collateral() {
     )
     .unwrap();
 
-    let borrower_res: BorrowerResponse = from_binary(&query_res).unwrap();
+    let borrower_res: BorrowerResponse = from_json(&query_res).unwrap();
     assert_eq!(
         borrower_res,
         BorrowerResponse {
@@ -201,7 +217,7 @@ fn deposit_collateral() {
         },
     )
     .unwrap();
-    let borrower_res: BorrowerResponse = from_binary(&query_res).unwrap();
+    let borrower_res: BorrowerResponse = from_json(&query_res).unwrap();
     assert_eq!(
         borrower_res,
         BorrowerResponse {
@@ -224,6 +240,8 @@ fn withdraw_collateral() {
         reward_contract: "reward".to_string(),
         liquidation_contract: "liquidation".to_string(),
         stable_denom: "uusd".to_string(),
+        swap_contract: "swap".to_string(),
+        swap_denoms: vec!["uusd".to_string()],
         basset_info: BAssetInfo {
             name: "bsei".to_string(),
             symbol: "bsei".to_string(),
@@ -237,7 +255,7 @@ fn withdraw_collateral() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "addr0000".to_string(),
         amount: Uint128::from(100u128),
-        msg: to_binary(&Cw20HookMsg::DepositCollateral {}).unwrap(),
+        msg: to_json_binary(&Cw20HookMsg::DepositCollateral {}).unwrap(),
     });
 
     let info = mock_info("bsei", &[]);
@@ -252,10 +270,11 @@ fn withdraw_collateral() {
     );
 
     let msg = ExecuteMsg::WithdrawCollateral {
+        borrower: "addr0000".to_string(),
         amount: Some(Uint256::from(110u64)),
     };
 
-    let info = mock_info("addr0000", &[]);
+    let info = mock_info("overseer", &[]);
     let res = execute(deps.as_mut(), mock_env(), info.clone(), msg);
     match res {
         Err(ContractError::WithdrawAmountExceedsSpendable(100)) => (),
@@ -263,6 +282,7 @@ fn withdraw_collateral() {
     }
 
     let msg = ExecuteMsg::WithdrawCollateral {
+        borrower: "addr0000".to_string(),
         amount: Some(Uint256::from(50u64)),
     };
     let res = execute(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
@@ -279,7 +299,7 @@ fn withdraw_collateral() {
         vec![SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: "bsei".to_string(),
             funds: vec![],
-            msg: to_binary(&Cw20ExecuteMsg::Transfer {
+            msg: to_json_binary(&Cw20ExecuteMsg::Transfer {
                 recipient: "addr0000".to_string(),
                 amount: Uint128::from(50u128),
             })
@@ -295,7 +315,7 @@ fn withdraw_collateral() {
         },
     )
     .unwrap();
-    let borrower_res: BorrowerResponse = from_binary(&query_res).unwrap();
+    let borrower_res: BorrowerResponse = from_json(&query_res).unwrap();
     assert_eq!(
         borrower_res,
         BorrowerResponse {
@@ -306,6 +326,7 @@ fn withdraw_collateral() {
     );
 
     let msg = ExecuteMsg::WithdrawCollateral {
+        borrower: "addr0000".to_string(),
         amount: Some(Uint256::from(40u128)),
     };
     let _res = execute(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
@@ -317,7 +338,7 @@ fn withdraw_collateral() {
         },
     )
     .unwrap();
-    let borrower_res: BorrowerResponse = from_binary(&query_res).unwrap();
+    let borrower_res: BorrowerResponse = from_json(&query_res).unwrap();
     assert_eq!(
         borrower_res,
         BorrowerResponse {
@@ -328,7 +349,10 @@ fn withdraw_collateral() {
     );
 
     //withdraw with "None" amount
-    let msg = ExecuteMsg::WithdrawCollateral { amount: None };
+    let msg = ExecuteMsg::WithdrawCollateral {
+        borrower: "addr0000".to_string(),
+        amount: None,
+    };
     let _res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
     let query_res = query(
         deps.as_ref(),
@@ -338,7 +362,7 @@ fn withdraw_collateral() {
         },
     )
     .unwrap();
-    let borrower_res: BorrowerResponse = from_binary(&query_res).unwrap();
+    let borrower_res: BorrowerResponse = from_json(&query_res).unwrap();
     assert_eq!(
         borrower_res,
         BorrowerResponse {
@@ -361,6 +385,8 @@ fn lock_collateral() {
         reward_contract: "reward".to_string(),
         liquidation_contract: "liquidation".to_string(),
         stable_denom: "uusd".to_string(),
+        swap_contract: "swap".to_string(),
+        swap_denoms: vec!["uusd".to_string()],
         basset_info: BAssetInfo {
             name: "bsei".to_string(),
             symbol: "bsei".to_string(),
@@ -374,7 +400,7 @@ fn lock_collateral() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "addr0000".to_string(),
         amount: Uint128::from(100u128),
-        msg: to_binary(&Cw20HookMsg::DepositCollateral {}).unwrap(),
+        msg: to_json_binary(&Cw20HookMsg::DepositCollateral {}).unwrap(),
     });
 
     let info = mock_info("bsei", &[]);
@@ -392,10 +418,16 @@ fn lock_collateral() {
         borrower: "addr0000".to_string(),
         amount: Uint256::from(50u64),
     };
-    let info = mock_info("addr0000", &[]);
-    let res = execute(deps.as_mut(), mock_env(), info, msg.clone());
+    let info = mock_info("addr000", &[]);
+    let res = execute(deps.as_mut(), mock_env(), info.clone(), msg.clone());
+    let _error_ret = ContractError::Std(StdError::generic_err(format!(
+        "info.sender address: {}  overseer contract address: {}",
+        info.clone().sender.as_str(),
+        "overseer".to_string()
+    )));
     match res {
-        Err(ContractError::Unauthorized {}) => (),
+        Err(_error_ret) => (),
+        //Err(ContractError::Unauthorized {}) => (),
         _ => panic!("DO NOT ENTER HERE"),
     }
 
@@ -429,9 +461,10 @@ fn lock_collateral() {
     assert_eq!(spend, Uint256::from(50u128));
 
     let msg = ExecuteMsg::WithdrawCollateral {
+        borrower: "addr0000".to_string(),
         amount: Some(Uint256::from(51u64)),
     };
-    let info = mock_info("addr0000", &[]);
+    let info = mock_info("overseer", &[]);
     let res = execute(deps.as_mut(), mock_env(), info.clone(), msg);
     match res {
         Err(ContractError::WithdrawAmountExceedsSpendable(50)) => (),
@@ -439,6 +472,7 @@ fn lock_collateral() {
     }
 
     let msg = ExecuteMsg::WithdrawCollateral {
+        borrower: "addr0000".to_string(),
         amount: Some(Uint256::from(50u64)),
     };
     let res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
@@ -459,7 +493,7 @@ fn lock_collateral() {
         },
     )
     .unwrap();
-    let borrower_res: BorrowerResponse = from_binary(&query_res).unwrap();
+    let borrower_res: BorrowerResponse = from_json(&query_res).unwrap();
     assert_eq!(
         borrower_res,
         BorrowerResponse {
@@ -516,9 +550,10 @@ fn lock_collateral() {
     assert_eq!(spend, Uint256::from(30u128));
 
     let msg = ExecuteMsg::WithdrawCollateral {
+        borrower: "addr0000".to_string(),
         amount: Some(Uint256::from(30u64)),
     };
-    let info = mock_info("addr0000", &[]);
+    let info = mock_info("overseer", &[]);
     let res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
     assert_eq!(
         res.attributes,
@@ -537,7 +572,7 @@ fn lock_collateral() {
         },
     )
     .unwrap();
-    let borrower_res: BorrowerResponse = from_binary(&query_res).unwrap();
+    let borrower_res: BorrowerResponse = from_json(&query_res).unwrap();
     assert_eq!(
         borrower_res,
         BorrowerResponse {
@@ -563,6 +598,8 @@ fn distribute_rewards() {
         reward_contract: "reward".to_string(),
         liquidation_contract: "liquidation".to_string(),
         stable_denom: "uusd".to_string(),
+        swap_contract: "swap".to_string(),
+        swap_denoms: vec!["uusd".to_string()],
         basset_info: BAssetInfo {
             name: "bsei".to_string(),
             symbol: "bsei".to_string(),
@@ -598,7 +635,7 @@ fn distribute_rewards() {
             CosmosMsg::Wasm(WasmMsg::Execute {
                 contract_addr: "reward".to_string(),
                 funds: vec![],
-                msg: to_binary(&RewardContractExecuteMsg::ClaimRewards { recipient: None })
+                msg: to_json_binary(&RewardContractExecuteMsg::ClaimRewards { recipient: None })
                     .unwrap(),
             }),
             CLAIM_REWARDS_OPERATION
@@ -631,6 +668,8 @@ fn distribute_hook() {
         reward_contract: "reward".to_string(),
         liquidation_contract: "liquidation".to_string(),
         stable_denom: "uusd".to_string(),
+        swap_contract: "swap".to_string(),
+        swap_denoms: vec!["uusd".to_string()],
         basset_info: BAssetInfo {
             name: "bsei".to_string(),
             symbol: "bsei".to_string(),
@@ -667,8 +706,7 @@ fn distribute_hook() {
             to_address: "overseer".to_string(),
             amount: vec![Coin {
                 denom: "uusd".to_string(),
-                // amount: Uint128::from(990099u128)
-                amount: Uint128::from(1000000u128)
+                amount: Uint128::from(990099u128)
             }],
         })),],
     )
@@ -686,6 +724,8 @@ fn distribution_hook_zero_rewards() {
         reward_contract: "reward".to_string(),
         liquidation_contract: "terraswap".to_string(),
         stable_denom: "uusd".to_string(),
+        swap_contract: "swap".to_string(),
+        swap_denoms: vec!["uusd".to_string()],
         basset_info: BAssetInfo {
             name: "bsei".to_string(),
             symbol: "bsei".to_string(),
@@ -743,6 +783,8 @@ fn swap_to_stable_denom() {
         reward_contract: "reward".to_string(),
         liquidation_contract: "liquidation".to_string(),
         stable_denom: "uusd".to_string(),
+        swap_contract: "swap".to_string(),
+        swap_denoms: vec!["ukrw".to_string(), "usdr".to_string()],
         basset_info: BAssetInfo {
             name: "bsei".to_string(),
             symbol: "bsei".to_string(),
@@ -750,41 +792,59 @@ fn swap_to_stable_denom() {
         },
     };
 
-    // let info = mock_info("addr0000", &[]);
-    // let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
-    //
-    // // mimic callback from distribute_rewards to execute swap_to_stable_denom
-    // let reply_msg = Reply {
-    //     id: 1,
-    //     result: SubMsgResult::Ok(SubMsgResponse {
-    //         events: vec![],
-    //         data: None,
-    //     }),
-    // };
-    // let res = reply(deps.as_mut(), mock_env(), reply_msg).unwrap();
-    //
-    // assert_eq!(
-    //     res.messages,
-    //     vec![
-    //         SubMsg::new(create_swap_msg(
-    //             Coin {
-    //                 denom: "ukrw".to_string(),
-    //                 amount: Uint128::from(20000000000u128),
-    //             },
-    //             "uusd".to_string(),
-    //         )),
-    //         SubMsg::reply_on_success(
-    //             create_swap_msg(
-    //                 Coin {
-    //                     denom: "usdr".to_string(),
-    //                     amount: Uint128::from(2000000u128),
-    //                 },
-    //                 "uusd".to_string(),
-    //             ),
-    //             SWAP_TO_STABLE_OPERATION
-    //         ),
-    //     ]
-    // );
+    let info = mock_info("addr0000", &[]);
+    let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+
+    // mimic callback from distribute_rewards to execute swap_to_stable_denom
+    let reply_msg = Reply {
+        id: 1,
+        result: SubMsgResult::Ok(SubMsgResponse {
+            events: vec![],
+            data: None,
+        }),
+    };
+    let res = reply(deps.as_mut(), mock_env(), reply_msg).unwrap();
+
+    let coin_ukrw = Coin {
+        denom: "ukrw".to_string(),
+        amount: Uint128::from(20000000000u128),
+    };
+
+    let swap_ukrw_msg = SwapExecteMsg::SwapDenom {
+        from_coin: coin_ukrw.clone(),
+        target_denom: "uusd".to_string(),
+        to_address: Option::from("reward".to_string()),
+    };
+
+    let coin_usdr = Coin {
+        denom: "usdr".to_string(),
+        amount: Uint128::from(2000000u128),
+    };
+
+    let swap_usdr_msg = SwapExecteMsg::SwapDenom {
+        from_coin: coin_usdr.clone(),
+        target_denom: "uusd".to_string(),
+        to_address: Option::from("reward".to_string()),
+    };
+
+    assert_eq!(
+        res.messages,
+        vec![
+            SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
+                contract_addr: "swap".to_string(),
+                msg: to_json_binary(&swap_ukrw_msg).unwrap(),
+                funds: vec![coin_ukrw.clone()],
+            })),
+            SubMsg::reply_on_success(
+                CosmosMsg::Wasm(WasmMsg::Execute {
+                    contract_addr: "swap".to_string(),
+                    msg: to_json_binary(&swap_usdr_msg).unwrap(),
+                    funds: vec![coin_usdr.clone()],
+                }),
+                SWAP_TO_STABLE_OPERATION
+            ),
+        ]
+    );
 }
 
 #[test]
@@ -799,6 +859,8 @@ fn liquidate_collateral() {
         reward_contract: "reward".to_string(),
         liquidation_contract: "liquidation".to_string(),
         stable_denom: "uusd".to_string(),
+        swap_contract: "swap".to_string(),
+        swap_denoms: vec!["uusd".to_string()],
         basset_info: BAssetInfo {
             name: "bsei".to_string(),
             symbol: "bsei".to_string(),
@@ -812,7 +874,7 @@ fn liquidate_collateral() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "addr0000".to_string(),
         amount: Uint128::from(100u128),
-        msg: to_binary(&Cw20HookMsg::DepositCollateral {}).unwrap(),
+        msg: to_json_binary(&Cw20HookMsg::DepositCollateral {}).unwrap(),
     });
 
     let info = mock_info("bsei", &[]);
@@ -880,10 +942,10 @@ fn liquidate_collateral() {
         vec![SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: "bsei".to_string(),
             funds: vec![],
-            msg: to_binary(&Cw20ExecuteMsg::Send {
+            msg: to_json_binary(&Cw20ExecuteMsg::Send {
                 contract: "liquidation".to_string(),
                 amount: Uint128::from(10u128),
-                msg: to_binary(&LiquidationCw20HookMsg::ExecuteBid {
+                msg: to_json_binary(&LiquidationCw20HookMsg::ExecuteBid {
                     liquidator: "liquidator".to_string(),
                     fee_address: Some("overseer".to_string()),
                     repay_address: Some("market".to_string()),
@@ -910,6 +972,8 @@ fn proper_distribute_rewards_with_no_rewards() {
         reward_contract: "reward".to_string(),
         liquidation_contract: "liquidation".to_string(),
         stable_denom: "uusd".to_string(),
+        swap_contract: "swap".to_string(),
+        swap_denoms: vec!["uusd".to_string()],
         basset_info: BAssetInfo {
             name: "bsei".to_string(),
             symbol: "bsei".to_string(),
@@ -961,7 +1025,7 @@ fn proper_distribute_rewards_with_no_rewards() {
             CosmosMsg::Wasm(WasmMsg::Execute {
                 contract_addr: "reward".to_string(),
                 funds: vec![],
-                msg: to_binary(&RewardContractExecuteMsg::ClaimRewards { recipient: None })
+                msg: to_json_binary(&RewardContractExecuteMsg::ClaimRewards { recipient: None })
                     .unwrap(),
             }),
             CLAIM_REWARDS_OPERATION

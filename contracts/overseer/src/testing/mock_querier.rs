@@ -1,20 +1,20 @@
+use moneymarket::common::{QueryTaxWrapper, QueryTaxMsg, TaxRateResponse, TaxCapResponse};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::testing::{MockApi, MockQuerier, MockStorage, MOCK_CONTRACT_ADDR};
 use cosmwasm_std::{
-    from_binary, from_slice, to_binary, Coin, ContractResult, Decimal, OwnedDeps, Querier,
+    from_json, to_json_binary, Coin, ContractResult, Decimal, OwnedDeps, Querier,
     QuerierResult, QueryRequest, SystemError, SystemResult, Uint128, WasmQuery,
 };
 use std::collections::HashMap;
 
 use moneymarket::liquidation::LiquidationAmountResponse;
 use moneymarket::market::{BorrowerInfoResponse, EpochStateResponse, StateResponse};
-use moneymarket::oracle::PriceResponse;
-use moneymarket::tokens::TokensHuman;
 
-use sei_cosmwasm::{SeiQuery, SeiQueryWrapper, SeiRoute};
+use moneymarket::tokens::TokensHuman;
+use moneymarket::oracle_pyth::PriceResponse;
 
 use std::str::FromStr;
 
@@ -34,7 +34,7 @@ pub enum QueryMsg {
         block_height: Option<u64>,
     },
     /// Query oracle price to oracle contract
-    Price { base: String, quote: String },
+    QueryPrice { asset: String },
     /// Query liquidation amount to liquidation model contract
     LiquidationAmount {
         borrow_amount: Uint256,
@@ -61,7 +61,7 @@ pub fn mock_dependencies(
 }
 
 pub struct WasmMockQuerier {
-    base: MockQuerier<SeiQueryWrapper>,
+    base: MockQuerier<QueryTaxWrapper>,
     tax_querier: TaxQuerier,
     epoch_state_querier: EpochStateQuerier,
     oracle_price_querier: OraclePriceQuerier,
@@ -96,12 +96,12 @@ pub(crate) fn caps_to_map(caps: &[(&String, &Uint128)]) -> HashMap<String, Uint1
 #[derive(Clone, Default)]
 pub struct OraclePriceQuerier {
     // this lets us iterate over all pairs that match the first string
-    oracle_price: HashMap<(String, String), (Decimal256, u64, u64)>,
+    oracle_price: HashMap<String, (Decimal256, i64, Decimal256, i64, u64, u64)>,
 }
 
 #[allow(clippy::type_complexity)]
 impl OraclePriceQuerier {
-    pub fn new(oracle_price: &[(&(String, String), &(Decimal256, u64, u64))]) -> Self {
+    pub fn new(oracle_price: &[(&String, &(Decimal256, i64, Decimal256, i64, u64, u64))]) -> Self {
         OraclePriceQuerier {
             oracle_price: oracle_price_to_map(oracle_price),
         }
@@ -110,15 +110,15 @@ impl OraclePriceQuerier {
 
 #[allow(clippy::type_complexity)]
 pub(crate) fn oracle_price_to_map(
-    oracle_price: &[(&(String, String), &(Decimal256, u64, u64))],
-) -> HashMap<(String, String), (Decimal256, u64, u64)> {
-    let mut oracle_price_map: HashMap<(String, String), (Decimal256, u64, u64)> = HashMap::new();
+    oracle_price: &[(&String, &(Decimal256, i64, Decimal256, i64, u64, u64))],
+) -> HashMap< String, (Decimal256, i64, Decimal256, i64, u64, u64)> {
+    let mut oracle_price_map: HashMap< String, (Decimal256, i64, Decimal256, i64, u64, u64)> = HashMap::new();
     for (base_quote, oracle_price) in oracle_price.iter() {
         oracle_price_map.insert((*base_quote).clone(), **oracle_price);
     }
-
     oracle_price_map
 }
+
 
 #[derive(Clone, Default)]
 pub struct EpochStateQuerier {
@@ -171,7 +171,7 @@ pub(crate) fn borrower_amount_to_map(
 impl Querier for WasmMockQuerier {
     fn raw_query(&self, bin_request: &[u8]) -> QuerierResult {
         // MockQuerier doesn't support Custom, so we ignore it completely here
-        let request: QueryRequest<SeiQueryWrapper> = match from_slice(bin_request) {
+        let request: QueryRequest<QueryTaxWrapper> = match from_json(bin_request) {
             Ok(v) => v,
             Err(e) => {
                 return SystemResult::Err(SystemError::InvalidRequest {
@@ -209,47 +209,43 @@ pub(crate) fn liquidation_percent_to_map(
 }
 
 impl WasmMockQuerier {
-    pub fn handle_query(&self, request: &QueryRequest<SeiQueryWrapper>) -> QuerierResult {
+    pub fn handle_query(&self, request: &QueryRequest<QueryTaxWrapper>) -> QuerierResult {
         match &request {
-            // QueryRequest::Custom(SeiQueryWrapper { route, query_data }) => {
-            //     if &SeiRoute::Treasury == route {
-            //         match query_data {
-            //             SeiQuery::TaxRate {} => {
-            //                 let res = TaxRateResponse {
-            //                     rate: self.tax_querier.rate,
-            //                 };
-            //                 SystemResult::Ok(ContractResult::from(to_binary(&res)))
-            //             }
-            //             SeiQuery::TaxCap { denom } => {
-            //                 let cap = self
-            //                     .tax_querier
-            //                     .caps
-            //                     .get(denom)
-            //                     .copied()
-            //                     .unwrap_or_default();
-            //                 let res = TaxCapResponse { cap };
-            //                 SystemResult::Ok(ContractResult::from(to_binary(&res)))
-            //             }
-            //             _ => panic!("DO NOT ENTER HERE"),
-            //         }
-            //     } else {
-            //         panic!("DO NOT ENTER HERE")
-            //     }
-            // }
+            QueryRequest::Custom(QueryTaxWrapper { query_data }) => {
+                match query_data {
+                    QueryTaxMsg::TaxRate {} => {
+                        let res = TaxRateResponse {
+                            rate: self.tax_querier.rate,
+                        };
+                        SystemResult::Ok(ContractResult::from(to_json_binary(&res)))
+                    }
+                    QueryTaxMsg::TaxCap { denom } => {
+                        let cap = self
+                            .tax_querier
+                            .caps
+                            .get(denom)
+                            .copied()
+                            .unwrap_or_default();
+                        let res = TaxCapResponse { cap };
+                        SystemResult::Ok(ContractResult::from(to_json_binary(&res)))
+                    }
+                    _ => panic!("DO NOT ENTER HERE"),
+                }
+            } 
             QueryRequest::Wasm(WasmQuery::Smart { contract_addr, msg }) => {
-                match from_binary(msg).unwrap() {
+                match from_json(msg).unwrap() {
                     QueryMsg::State { block_height: _ } => {
                         match self.epoch_state_querier.epoch_state.get(contract_addr) {
                             // TODO:
                             Some(_v) => {
-                                SystemResult::Ok(ContractResult::from(to_binary(&StateResponse {
+                                SystemResult::Ok(ContractResult::from(to_json_binary(&StateResponse {
                                     total_liabilities: Decimal256::zero(),
                                     total_reserves: Decimal256::zero(),
                                     last_interest_updated: 0,
-                                    last_reward_updated: 0,
+                                    //last_reward_updated: 0,
                                     global_interest_index: Decimal256::from_str("1000000.0")
                                         .unwrap(),
-                                    global_reward_index: Decimal256::zero(),
+                                    //global_reward_index: Decimal256::zero(),
                                     // kpt_emission_rate: Decimal256::zero(),
                                     prev_atoken_supply: Uint256::zero(),
                                     prev_exchange_rate: Decimal256::zero(),
@@ -266,7 +262,7 @@ impl WasmMockQuerier {
                         distributed_interest: _,
                     } => match self.epoch_state_querier.epoch_state.get(contract_addr) {
                         Some(v) => {
-                            SystemResult::Ok(ContractResult::from(to_binary(&EpochStateResponse {
+                            SystemResult::Ok(ContractResult::from(to_json_binary(&EpochStateResponse {
                                 atoken_supply: v.0,
                                 exchange_rate: v.1,
                             })))
@@ -280,13 +276,13 @@ impl WasmMockQuerier {
                         borrower,
                         block_height: _,
                     } => match self.loan_amount_querier.borrower_amount.get(&borrower) {
-                        Some(v) => SystemResult::Ok(ContractResult::from(to_binary(
+                        Some(v) => SystemResult::Ok(ContractResult::from(to_json_binary(
                             &BorrowerInfoResponse {
                                 borrower,
                                 interest_index: Decimal256::one(),
-                                reward_index: Decimal256::zero(),
+                                //reward_index: Decimal256::zero(),
                                 loan_amount: *v,
-                                pending_rewards: Decimal256::zero(),
+                                //pending_rewards: Decimal256::zero(),
                             },
                         ))),
                         None => SystemResult::Err(SystemError::InvalidRequest {
@@ -294,13 +290,17 @@ impl WasmMockQuerier {
                             request: msg.as_slice().into(),
                         }),
                     },
-                    QueryMsg::Price { base, quote } => {
-                        match self.oracle_price_querier.oracle_price.get(&(base, quote)) {
+                    QueryMsg::QueryPrice { asset, } => {
+                        match self.oracle_price_querier.oracle_price.get(&(asset)) {
                             Some(v) => {
-                                SystemResult::Ok(ContractResult::from(to_binary(&PriceResponse {
-                                    rate: v.0,
-                                    last_updated_base: v.1,
-                                    last_updated_quote: v.2,
+                                SystemResult::Ok(ContractResult::from(to_json_binary(&PriceResponse {
+                                    asset,
+                                    emv_price: v.0, 
+                                    emv_price_raw: v.1,
+                                    price: v.2,
+                                    price_raw: v.3,
+                                    last_updated_base: v.4,
+                                    last_updated_quote: v.5,
                                 })))
                             }
                             None => SystemResult::Err(SystemError::InvalidRequest {
@@ -322,7 +322,7 @@ impl WasmMockQuerier {
                         {
                             Some(v) => {
                                 if borrow_amount > borrow_limit {
-                                    SystemResult::Ok(ContractResult::from(to_binary(
+                                    SystemResult::Ok(ContractResult::from(to_json_binary(
                                         &LiquidationAmountResponse {
                                             collaterals: collaterals
                                                 .iter()
@@ -332,7 +332,7 @@ impl WasmMockQuerier {
                                         },
                                     )))
                                 } else {
-                                    SystemResult::Ok(ContractResult::from(to_binary(
+                                    SystemResult::Ok(ContractResult::from(to_json_binary(
                                         &LiquidationAmountResponse {
                                             collaterals: vec![],
                                         },
@@ -353,7 +353,7 @@ impl WasmMockQuerier {
 }
 
 impl WasmMockQuerier {
-    pub fn new(base: MockQuerier<SeiQueryWrapper>) -> Self {
+    pub fn new(base: MockQuerier<QueryTaxWrapper>) -> Self {
         WasmMockQuerier {
             base,
             tax_querier: TaxQuerier::default(),
@@ -376,10 +376,18 @@ impl WasmMockQuerier {
     #[allow(clippy::type_complexity)]
     pub fn with_oracle_price(
         &mut self,
-        oracle_price: &[(&(String, String), &(Decimal256, u64, u64))],
+        oracle_price: &[(&String, &(Decimal256, i64, Decimal256, i64, u64, u64))],
     ) {
         self.oracle_price_querier = OraclePriceQuerier::new(oracle_price);
     }
+
+    // #[allow(clippy::type_complexity)]
+    // pub fn with_oracle_price(
+    //     &mut self,
+    //     oracle_price: &[(&(String, String), &(Decimal256, u64, u64))],
+    // ) {
+    //     self.oracle_price_querier = OraclePriceQuerier::new(oracle_price);
+    // }
 
     pub fn with_loan_amount(&mut self, loan_amount: &[(&String, &Uint256)]) {
         self.loan_amount_querier = LoanAmountQuerier::new(loan_amount);

@@ -6,7 +6,7 @@ use crate::state::{
 
 use cosmwasm_bignumber::Uint256;
 use cosmwasm_std::{
-    attr, to_binary, Addr, CanonicalAddr, CosmosMsg, Deps, DepsMut, MessageInfo, Response,
+    attr, to_json_binary, Addr, CanonicalAddr, CosmosMsg, Deps, DepsMut, MessageInfo, Response,
     StdError, StdResult, WasmMsg,
 };
 use cw20::Cw20ExecuteMsg;
@@ -37,7 +37,7 @@ pub fn deposit_collateral(
                 .api
                 .addr_humanize(&config.overseer_contract)?
                 .to_string(),
-            msg: to_binary(&moneymarket::overseer::ExecuteMsg::LockCollateral {
+            msg: to_json_binary(&moneymarket::overseer::ExecuteMsg::LockCollateral {
                 borrower: borrower.to_string(),
                 collaterals: vec![(
                     deps.api
@@ -100,7 +100,7 @@ pub fn withdraw_collateral(
                 .addr_humanize(&config.collateral_token)?
                 .to_string(),
             funds: vec![],
-            msg: to_binary(&Cw20ExecuteMsg::Transfer {
+            msg: to_json_binary(&Cw20ExecuteMsg::Transfer {
                 recipient: borrower.to_string(),
                 amount: amount.into(),
             })?,
@@ -211,13 +211,13 @@ pub fn liquidate_collateral(
                 .addr_humanize(&config.collateral_token)?
                 .to_string(),
             funds: vec![],
-            msg: to_binary(&Cw20ExecuteMsg::Send {
+            msg: to_json_binary(&Cw20ExecuteMsg::Send {
                 contract: deps
                     .api
                     .addr_humanize(&config.liquidation_contract)?
                     .to_string(),
                 amount: amount.into(),
-                msg: to_binary(&LiquidationCw20HookMsg::ExecuteBid {
+                msg: to_json_binary(&LiquidationCw20HookMsg::ExecuteBid {
                     liquidator: liquidator.to_string(),
                     fee_address: Some(
                         deps.api

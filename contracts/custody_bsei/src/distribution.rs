@@ -1,5 +1,5 @@
 use cosmwasm_bignumber::Uint256;
-use cosmwasm_std::{attr, to_binary, Addr, BankMsg, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, QueryRequest, Response, StdResult, SubMsg, Uint128, WasmMsg, WasmQuery, ReplyOn};
+use cosmwasm_std::{attr, to_json_binary, Addr, BankMsg, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, QueryRequest, Response, StdResult, SubMsg, Uint128, WasmMsg, WasmQuery, ReplyOn};
 
 use crate::contract::{CLAIM_REWARDS_OPERATION, SWAP_TO_STABLE_OPERATION};
 use crate::error::ContractError;
@@ -43,7 +43,7 @@ pub fn distribute_rewards(
             CosmosMsg::Wasm(WasmMsg::Execute {
                 contract_addr: reward_contract.to_string(),
                 funds: vec![],
-                msg: to_binary(&RewardContractExecuteMsg::ClaimRewards { recipient: None })?,
+                msg: to_json_binary(&RewardContractExecuteMsg::ClaimRewards { recipient: None })?,
             }),
             CLAIM_REWARDS_OPERATION,
         )]),
@@ -119,7 +119,7 @@ pub fn swap_to_stable_denom(
             };
             messages.push(SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
                 contract_addr: swap_addr.clone().to_string(),
-                msg: to_binary(&swap_msg)?,
+                msg: to_json_binary(&swap_msg)?,
                 funds: vec![coin.clone()],
             })));
         }
@@ -153,7 +153,7 @@ pub(crate) fn get_accrued_rewards(
     let rewards: BSeiAccruedRewardsResponse =
         deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
             contract_addr: reward_contract_addr.to_string(),
-            msg: to_binary(&RewardContractQueryMsg::AccruedRewards {
+            msg: to_json_binary(&RewardContractQueryMsg::AccruedRewards {
                 address: contract_addr.to_string(),
             })?,
         }))?;

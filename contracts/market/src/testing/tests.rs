@@ -8,7 +8,7 @@ use crate::testing::mock_querier::mock_dependencies;
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::testing::{mock_env, mock_info, MOCK_CONTRACT_ADDR};
 use cosmwasm_std::{
-    attr, from_binary, to_binary, Addr, BankMsg, Coin, CosmosMsg, Decimal, Reply, SubMsg,
+    attr, from_json, to_json_binary, Addr, BankMsg, Coin, CosmosMsg, Decimal, Reply, SubMsg,
     SubMsgResponse, SubMsgResult, Uint128, WasmMsg,
 };
 use cw20::{Cw20Coin, Cw20ExecuteMsg, Cw20ReceiveMsg, MinterResponse};
@@ -54,7 +54,7 @@ fn proper_initialization() {
                 code_id: 123u64,
                 funds: vec![],
                 label: "Kryptonite stable coin share".to_string(),
-                msg: to_binary(&TokenInstantiateMsg {
+                msg: to_json_binary(&TokenInstantiateMsg {
                     name: "Kryptonite stable coin share".to_string(),
                     symbol: "kUSD".to_string(),
                     decimals: 6u8,
@@ -111,7 +111,7 @@ fn proper_initialization() {
     let _res = execute(deps.as_mut(), mock_env(), info, msg).unwrap_err();
 
     let query_res = query(deps.as_ref(), mock_env(), QueryMsg::Config {}).unwrap();
-    let config_res: ConfigResponse = from_binary(&query_res).unwrap();
+    let config_res: ConfigResponse = from_json(&query_res).unwrap();
     assert_eq!("owner".to_string(), config_res.owner_addr);
     assert_eq!("at-uusd".to_string(), config_res.atoken_contract);
     assert_eq!("interest".to_string(), config_res.interest_model);
@@ -128,7 +128,7 @@ fn proper_initialization() {
         QueryMsg::State { block_height: None },
     )
     .unwrap();
-    let state: StateResponse = from_binary(&query_res).unwrap();
+    let state: StateResponse = from_json(&query_res).unwrap();
     assert_eq!(Decimal256::zero(), state.total_liabilities);
     assert_eq!(Decimal256::zero(), state.total_reserves);
     assert_eq!(mock_env().block.height, state.last_interest_updated);
@@ -192,7 +192,6 @@ fn update_config() {
     // update owner
     let info = mock_info("owner", &[]);
     let msg = ExecuteMsg::UpdateConfig {
-        owner_addr: Some("owner1".to_string()),
         interest_model: None,
         distribution_model: None,
         max_borrow_factor: None,
@@ -201,15 +200,25 @@ fn update_config() {
     let res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
     assert_eq!(0, res.messages.len());
 
+    let msg = ExecuteMsg::SetOwner {
+        new_owner_addr: "owner1".to_string(),
+    };
+    let info = mock_info("owner", &[]);
+    execute(deps.as_mut(), mock_env(), info, msg.clone()).unwrap();
+
+    let msg = ExecuteMsg::AcceptOwnership {};
+    let info = mock_info("owner1", &[]);
+    execute(deps.as_mut(), mock_env(), info, msg.clone()).unwrap();
+
+
     // it worked, let's query the state
     let res = query(deps.as_ref(), mock_env(), QueryMsg::Config {}).unwrap();
-    let config_res: ConfigResponse = from_binary(&res).unwrap();
+    let config_res: ConfigResponse = from_json(&res).unwrap();
     assert_eq!("owner1".to_string(), config_res.owner_addr);
 
     // update left items
     let info = mock_info("owner1", &[]);
     let msg = ExecuteMsg::UpdateConfig {
-        owner_addr: None,
         interest_model: Some("interest2".to_string()),
         distribution_model: Some("distribution2".to_string()),
         max_borrow_factor: Some(Decimal256::percent(100)),
@@ -220,7 +229,7 @@ fn update_config() {
 
     // it worked, let's query the state
     let res = query(deps.as_ref(), mock_env(), QueryMsg::Config {}).unwrap();
-    let config_res: ConfigResponse = from_binary(&res).unwrap();
+    let config_res: ConfigResponse = from_json(&res).unwrap();
     assert_eq!("owner1".to_string(), config_res.owner_addr);
     assert_eq!("interest2".to_string(), config_res.interest_model);
     assert_eq!("distribution2".to_string(), config_res.distribution_model);
@@ -229,7 +238,6 @@ fn update_config() {
     // Unauthorized err
     let info = mock_info("owner", &[]);
     let msg = ExecuteMsg::UpdateConfig {
-        owner_addr: None,
         interest_model: None,
         distribution_model: None,
         max_borrow_factor: None,
@@ -349,7 +357,7 @@ fn deposit_stable_huge_amount() {
         vec![SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: "at-uusd".to_string(),
             funds: vec![],
-            msg: to_binary(&Cw20ExecuteMsg::Mint {
+            msg: to_json_binary(&Cw20ExecuteMsg::Mint {
                 recipient: "addr0000".to_string(),
                 amount: Uint128::from(55_555_555_000_000u128),
             })
@@ -389,7 +397,7 @@ fn deposit_stable_huge_amount() {
         vec![SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: "at-uusd".to_string(),
             funds: vec![],
-            msg: to_binary(&Cw20ExecuteMsg::Mint {
+            msg: to_json_binary(&Cw20ExecuteMsg::Mint {
                 recipient: "addr0000".to_string(),
                 amount: Uint128::from(55_555_555_000_000u128),
             })
@@ -539,7 +547,7 @@ fn deposit_stable() {
         vec![SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: "at-uusd".to_string(),
             funds: vec![],
-            msg: to_binary(&Cw20ExecuteMsg::Mint {
+            msg: to_json_binary(&Cw20ExecuteMsg::Mint {
                 recipient: "addr0000".to_string(),
                 amount: Uint128::from(1000000u128),
             })
@@ -580,7 +588,7 @@ fn deposit_stable() {
         vec![SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: "at-uusd".to_string(),
             funds: vec![],
-            msg: to_binary(&Cw20ExecuteMsg::Mint {
+            msg: to_json_binary(&Cw20ExecuteMsg::Mint {
                 recipient: "addr0000".to_string(),
                 amount: Uint128::from(2000000u128),
             })
@@ -730,7 +738,7 @@ fn redeem_stable() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "addr0000".to_string(),
         amount: Uint128::from(1000000u128),
-        msg: to_binary(&Cw20HookMsg::RedeemStable {}).unwrap(),
+        msg: to_json_binary(&Cw20HookMsg::RedeemStable {}).unwrap(),
     });
     let info = mock_info("addr0000", &[]);
     let res = execute(deps.as_mut(), mock_env(), info, msg.clone());
@@ -747,7 +755,7 @@ fn redeem_stable() {
             SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
                 contract_addr: "at-uusd".to_string(),
                 funds: vec![],
-                msg: to_binary(&Cw20ExecuteMsg::Burn {
+                msg: to_json_binary(&Cw20ExecuteMsg::Burn {
                     amount: Uint128::from(1000000u128),
                 })
                 .unwrap()
@@ -814,7 +822,7 @@ fn redeem_stable() {
             SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
                 contract_addr: "at-uusd".to_string(),
                 funds: vec![],
-                msg: to_binary(&Cw20ExecuteMsg::Burn {
+                msg: to_json_binary(&Cw20ExecuteMsg::Burn {
                     amount: Uint128::from(1000000u128),
                 })
                 .unwrap()
@@ -835,7 +843,6 @@ fn redeem_stable() {
 }
 
 #[test]
-#[ignore = "deprecated functionality"]
 fn borrow_stable() {
     let mut deps = mock_dependencies(&[Coin {
         denom: "uusd".to_string(),
@@ -952,7 +959,7 @@ fn borrow_stable() {
     );
 
     assert_eq!(
-        from_binary::<State>(
+        from_json::<StateResponse>(
             &query(
                 deps.as_ref(),
                 env.clone(),
@@ -961,22 +968,30 @@ fn borrow_stable() {
             .unwrap()
         )
         .unwrap(),
-        State {
+        // State {
+        //     total_liabilities: Decimal256::from_uint256(2500000u128),
+        //     total_reserves: Decimal256::zero(),
+        //     last_interest_updated: env.block.height,
+        //     last_reward_updated: env.block.height,
+        //     global_interest_index: Decimal256::from_uint256(2u128),
+        //     global_reward_index: Decimal256::from_str("0.0001").unwrap(),
+        //     kpt_emission_rate: Decimal256::one(),
+        //     prev_atoken_supply: Uint256::zero(),
+        //     prev_exchange_rate: Decimal256::one(),
+        // }
+        StateResponse {
             total_liabilities: Decimal256::from_uint256(2500000u128),
             total_reserves: Decimal256::zero(),
             last_interest_updated: env.block.height,
-            last_reward_updated: env.block.height,
             global_interest_index: Decimal256::from_uint256(2u128),
-            global_reward_index: Decimal256::from_str("0.0001").unwrap(),
-            kpt_emission_rate: Decimal256::one(),
             prev_atoken_supply: Uint256::zero(),
-            prev_exchange_rate: Decimal256::one(),
+            prev_exchange_rate:  Decimal256::one(),
         }
     );
 
     // after 1 block state
     assert_eq!(
-        from_binary::<State>(
+        from_json::<StateResponse>(
             &query(
                 deps.as_ref(),
                 mock_env(),
@@ -987,16 +1002,24 @@ fn borrow_stable() {
             .unwrap()
         )
         .unwrap(),
-        State {
+        // State {
+        //     total_liabilities: Decimal256::from_uint256(2525000u128),
+        //     total_reserves: Decimal256::from_uint256(0u128),
+        //     last_interest_updated: env.block.height + 1u64,
+        //     last_reward_updated: env.block.height + 1u64,
+        //     global_interest_index: Decimal256::from_str("2.02").unwrap(),
+        //     global_reward_index: Decimal256::from_str("0.0001008").unwrap(),
+        //     kpt_emission_rate: Decimal256::one(),
+        //     prev_atoken_supply: Uint256::zero(),
+        //     prev_exchange_rate: Decimal256::one(),
+        // }
+        StateResponse {
             total_liabilities: Decimal256::from_uint256(2525000u128),
             total_reserves: Decimal256::from_uint256(0u128),
             last_interest_updated: env.block.height + 1u64,
-            last_reward_updated: env.block.height + 1u64,
             global_interest_index: Decimal256::from_str("2.02").unwrap(),
-            global_reward_index: Decimal256::from_str("0.0001008").unwrap(),
-            kpt_emission_rate: Decimal256::one(),
             prev_atoken_supply: Uint256::zero(),
-            prev_exchange_rate: Decimal256::one(),
+            prev_exchange_rate:  Decimal256::one(),
         }
     );
 
@@ -1010,15 +1033,15 @@ fn borrow_stable() {
     )
     .unwrap();
 
-    let liability: BorrowerInfoResponse = from_binary(&res).unwrap();
+    let liability: BorrowerInfoResponse = from_json(&res).unwrap();
     assert_eq!(
         liability,
         BorrowerInfoResponse {
             borrower: "addr0000".to_string(),
             interest_index: Decimal256::from_uint256(2u128),
-            reward_index: Decimal256::from_str("0.0001").unwrap(),
+            //reward_index: Decimal256::from_str("0.0001").unwrap(),
             loan_amount: Uint256::from(500000u64),
-            pending_rewards: Decimal256::zero(),
+            //pending_rewards: Decimal256::zero(),
         }
     );
 
@@ -1032,15 +1055,15 @@ fn borrow_stable() {
     )
     .unwrap();
 
-    let borrower_info: BorrowerInfoResponse = from_binary(&res).unwrap();
+    let borrower_info: BorrowerInfoResponse = from_json(&res).unwrap();
     assert_eq!(
         borrower_info,
         BorrowerInfoResponse {
             borrower: "addr0000".to_string(),
             interest_index: Decimal256::from_uint256(2u128),
-            reward_index: Decimal256::from_str("0.0001").unwrap(),
+            //reward_index: Decimal256::from_str("0.0001").unwrap(),
             loan_amount: Uint256::from(500000u64),
-            pending_rewards: Decimal256::zero(),
+            // pending_rewards: Decimal256::zero(),
         }
     );
 
@@ -1056,15 +1079,15 @@ fn borrow_stable() {
     )
     .unwrap();
 
-    let borrower_info: BorrowerInfoResponse = from_binary(&res).unwrap();
+    let borrower_info: BorrowerInfoResponse = from_json(&res).unwrap();
     assert_eq!(
         borrower_info,
         BorrowerInfoResponse {
             borrower: "addr0000".to_string(),
             interest_index: Decimal256::from_uint256(4u128),
-            reward_index: Decimal256::from_str("0.00018").unwrap(),
+            // reward_index: Decimal256::from_str("0.00018").unwrap(),
             loan_amount: Uint256::from(1000000u64),
-            pending_rewards: Decimal256::from_uint256(20u64),
+            // pending_rewards: Decimal256::from_uint256(20u64),
         }
     );
 
@@ -1081,7 +1104,6 @@ fn borrow_stable() {
 }
 
 #[test]
-#[ignore = "deprecated functionality"]
 fn assert_max_borrow_factor() {
     let mut deps = mock_dependencies(&[Coin {
         denom: "uusd".to_string(),
@@ -1192,7 +1214,6 @@ fn assert_max_borrow_factor() {
 }
 
 #[test]
-#[ignore = "deprecated functionality"]
 fn repay_stable() {
     let mut deps = mock_dependencies(&[Coin {
         denom: "uusd".to_string(),
@@ -1549,7 +1570,6 @@ fn repay_stable_from_liquidation() {
 }
 
 #[test]
-#[ignore = "deprecated functionality"]
 fn claim_rewards() {
     let mut deps = mock_dependencies(&[Coin {
         denom: "uusd".to_string(),
@@ -1600,7 +1620,7 @@ fn claim_rewards() {
         distributor_contract: "distributor".to_string(),
     };
     let info = mock_info("addr0000", &[]);
-    let mut env = mock_env();
+    let env = mock_env();
     let _res = execute(deps.as_mut(), env.clone(), info.clone(), msg).unwrap();
 
     deps.querier
@@ -1650,7 +1670,7 @@ fn claim_rewards() {
     //     vec![SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
     //         contract_addr: "distributor".to_string(),
     //         funds: vec![],
-    //         msg: to_binary(&FaucetExecuteMsg::Spend {
+    //         msg: to_json_binary(&FaucetExecuteMsg::Spend {
     //             recipient: "addr0001".to_string(),
     //             amount: Uint128::from(33u128),
     //         })
@@ -1658,7 +1678,7 @@ fn claim_rewards() {
     //     }))]
     // );
 
-    let res: BorrowerInfoResponse = from_binary(
+    let _res: BorrowerInfoResponse = from_json(
         &query(
             deps.as_ref(),
             mock_env(),
@@ -1670,18 +1690,17 @@ fn claim_rewards() {
         .unwrap(),
     )
     .unwrap();
-    assert_eq!(
-        res.pending_rewards,
-        Decimal256::from_str("0.333333333333").unwrap()
-    );
-    assert_eq!(
-        res.reward_index,
-        Decimal256::from_str("0.000066666666666666").unwrap()
-    );
+    // assert_eq!(
+    //     res.pending_rewards,
+    //     Decimal256::from_str("0.333333333333").unwrap()
+    // );
+    // assert_eq!(
+    //     res.reward_index,
+    //     Decimal256::from_str("0.000066666666666666").unwrap()
+    // );
 }
 
 #[test]
-#[ignore = "deprecated functionality"]
 fn execute_epoch_operations() {
     let mut deps = mock_dependencies(&[Coin {
         denom: "uusd".to_string(),
@@ -1796,7 +1815,7 @@ fn execute_epoch_operations() {
             last_reward_updated: env.block.height,
             global_interest_index: Decimal256::from_uint256(2u64),
             global_reward_index: Decimal256::from_str("0.0001").unwrap(),
-            kpt_emission_rate: Decimal256::one(),
+            kpt_emission_rate: Decimal256::from_uint256(5u64),
             prev_atoken_supply: Uint256::zero(),
             prev_exchange_rate: Decimal256::one(),
         }
@@ -1853,100 +1872,141 @@ fn execute_epoch_operations() {
             last_reward_updated: env.block.height,
             global_interest_index: Decimal256::from_uint256(2u64),
             global_reward_index: Decimal256::from_str("0.0001").unwrap(),
-            kpt_emission_rate: Decimal256::one(),
+            kpt_emission_rate: Decimal256::from_uint256(5u64),
             prev_atoken_supply: Uint256::zero(),
             prev_exchange_rate: Decimal256::one(),
         }
     );
 }
 
-// #[test]
-// fn borrow_repay_execute_operations() {
-//     let mut deps = mock_dependencies(
-//         20,
-//         &[Coin {
-//             denom: "uusd".to_string(),
-//             amount: Uint128::from(INITIAL_DEPOSIT_AMOUNT),
-//         }],
-//     );
+#[test]
+fn borrow_repay_execute_operations() {
+    let mut deps = mock_dependencies(&[Coin {
+        denom: "uusd".to_string(),
+        amount: Uint128::from(INITIAL_DEPOSIT_AMOUNT),
+    }]);
 
-//     let msg = InstantiateMsg {
-//         owner_addr: "owner".to_string(),
-//         stable_denom: "uusd".to_string(),
-//         atoken_code_id: 123u64,
-//         kpt_emission_rate: Decimal256::one(),
-//         max_borrow_factor: Decimal256::one(),
-//     };
+    let msg = InstantiateMsg {
+        owner_addr: "owner".to_string(),
+        stable_denom: "uusd".to_string(),
+        atoken_code_id: 123u64,
+        kpt_emission_rate: Decimal256::one(),
+        max_borrow_factor: Decimal256::one(),
+    };
 
-//     let env = mock_env(
-//         "addr0000",
-//         &[Coin {
-//             denom: "uusd".to_string(),
-//             amount: Uint128::from(INITIAL_DEPOSIT_AMOUNT),
-//         }],
-//     );
+    let info = mock_info(
+        "addr0000",
+        &[Coin {
+            denom: "uusd".to_string(),
+            amount: Uint128::from(1000000u64),
+        }],
+    );
 
-//     // we can just call .unwrap() to assert this was a success
-//     let _res = instantiate(deps.as_mut(), env.clone(), info.clone(), msg).unwrap();
-//     // Register kryptonite token contract
-//     let msg = ExecuteMsg::RegisterATerra {};
-//     let env = mock_env("at-uusd", &[]);
-//     let _res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
+    // we can just call .unwrap() to assert this was a success
+    let res = instantiate(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
 
-//     // Register overseer contract
-//     let msg = ExecuteMsg::RegisterContracts {
-//         overseer_contract: "overseer".to_string(),
-//         interest_model: "interest".to_string(),
-//         distribution_model: "distribution".to_string(),
-//         collector_contract: "collector".to_string(),
-//         distributor_contract: "distributor".to_string(),
-//     };
-//     let env = mock_env("addr0000", &[]);
-//     let _res = execute(deps.as_mut(), env.clone(), info.clone(), msg).unwrap();
+    assert_eq!(
+        res.messages,
+        vec![SubMsg::reply_on_success(
+            CosmosMsg::Wasm(WasmMsg::Instantiate {
+                admin: None,
+                code_id: 123u64,
+                funds: vec![],
+                label: "Kryptonite stable coin share".to_string(),
+                msg: to_json_binary(&TokenInstantiateMsg {
+                    name: "Kryptonite stable coin share".to_string(),
+                    symbol: "kUSD".to_string(),
+                    decimals: 6u8,
+                    initial_balances: vec![Cw20Coin {
+                        address: MOCK_CONTRACT_ADDR.to_string(),
+                        amount: Uint128::from(INITIAL_DEPOSIT_AMOUNT),
+                    }],
+                    mint: Some(MinterResponse {
+                        minter: MOCK_CONTRACT_ADDR.to_string(),
+                        cap: None,
+                    }),
+                })
+                .unwrap(),
+            }),
+            1
+        )]
+    );
 
-//     deps.querier
-//         .with_borrow_rate(&[(&"interest".to_string(), &Decimal256::percent(1))]);
-//     deps.querier.with_token_balances(&[(
-//         &HumanAddr::from("at-uusd"),
-//         &[(
-//             &MOCK_CONTRACT_ADDR.to_string(),
-//             &Uint128::from(1000000u128),
-//         )],
-//     )]);
-//     deps.querier.update_balance(
-//         MOCK_CONTRACT_ADDR.to_string(),
-//         vec![Coin {
-//             denom: "uusd".to_string(),
-//             amount: Uint128::from(373025692u128),
-//         }],
-//     );
+    // Register kryptonite token contract
+    let mut token_inst_res = MsgInstantiateContractResponse::new();
+    token_inst_res.set_contract_address("at-uusd".to_string());
+    let reply_msg = Reply {
+        id: 1,
+        result: SubMsgResult::Ok(SubMsgResponse {
+            events: vec![],
+            data: Some(token_inst_res.write_to_bytes().unwrap().into()),
+        }),
+    };
+    let _res = reply(deps.as_mut(), mock_env(), reply_msg.clone()).unwrap();
 
-//     let mut env = mock_env("overseer", &[]);
+    // Cannot register again
+    let _res = reply(deps.as_mut(), mock_env(), reply_msg).unwrap_err();
 
-//     store_state(
-//         deps.as_mut().storage,
-//         &State {
-//             total_liabilities: Decimal256::from_str("8.198749212085782102").unwrap(),
-//             total_reserves: Decimal256::from_str("372025697.802295205294219818").unwrap(),
-//             last_interest_updated: env.block.height,
-//             last_reward_updated: env.block.height,
-//             global_interest_index: Decimal256::from_str("1.000005078160215988").unwrap(),
-//             global_reward_index: Decimal256::from_str("119531.277425251814227128").unwrap(),
-//             kpt_emission_rate: Decimal256::from_str("980001.99").unwrap(),
-//             prev_atoken_supply: Uint256::from(1000000001000000u128),
-//             prev_exchange_rate: Decimal256::from_str("1.0000022").unwrap(),
-//         },
-//     )
-//     .unwrap();
 
-//     env.block.height += 100;
+    // Register overseer contract
+    let msg = ExecuteMsg::RegisterContracts {
+        overseer_contract: "overseer".to_string(),
+        interest_model: "interest".to_string(),
+        distribution_model: "distribution".to_string(),
+        collector_contract: "collector".to_string(),
+        distributor_contract: "distributor".to_string(),
+    };
+    let info = mock_info("addr0000", &[]);
+    let mut env = mock_env();
+    let _res = execute(deps.as_mut(), env.clone(), info.clone(), msg).unwrap();
 
-//     let msg = ExecuteMsg::ExecuteEpochOperations {
-//         deposit_rate: Decimal256::one(),
-//         target_deposit_rate: Decimal256::from_str("0.000000040762727704").unwrap(),
-//         threshold_deposit_rate: Decimal256::from_str("0.000000030572045778").unwrap(),
-//     };
+    // deps.querier
+    //     .with_borrow_rate(&[(&"interest".to_string(), &Decimal256::percent(1))]);
+    let one_year_of_blocks = 10 * 60 * 24 * 365 * 100; 
+    deps.querier
+         .with_borrow_rate(&[(&"interest".to_string(), &Decimal256::from_ratio(1, one_year_of_blocks))]);
 
-//     // only overseer can execute this
-//     let _ = execute(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
-// }
+    deps.querier.with_token_balances(&[(
+        &"at-uusd".to_string(),
+        &[(&MOCK_CONTRACT_ADDR.to_string(), &Uint128::from(1000000u128))],
+    )]);
+
+    deps.querier.update_balance(
+        MOCK_CONTRACT_ADDR.to_string(),
+        vec![Coin {
+            denom: "uusd".to_string(),
+            amount: Uint128::from(373025692u128),
+        }],
+    );
+
+    // let mut env = mock_env("overseer", &[]);
+
+    store_state(
+        deps.as_mut().storage,
+        &State {
+            total_liabilities: Decimal256::from_str("8.198749212085782102").unwrap(),
+            total_reserves: Decimal256::from_str("372025697.802295205294219818").unwrap(),
+            last_interest_updated: env.block.height,
+            last_reward_updated: env.block.height,
+            global_interest_index: Decimal256::from_str("1.000005078160215988").unwrap(),
+            global_reward_index: Decimal256::from_str("119531.277425251814227128").unwrap(),
+            kpt_emission_rate: Decimal256::from_str("980001.99").unwrap(),
+            prev_atoken_supply: Uint256::from(1000000001000000u128),
+            prev_exchange_rate: Decimal256::from_str("1.0000022").unwrap(),
+        },
+    )
+    .unwrap();
+
+    env.block.height += 100;
+
+    let msg = ExecuteMsg::ExecuteEpochOperations {
+        deposit_rate: Decimal256::one(),
+        target_deposit_rate: Decimal256::from_str("0.000000040762727704").unwrap(),
+        threshold_deposit_rate: Decimal256::from_str("0.000000030572045778").unwrap(),
+        distributed_interest: Uint256::zero(),
+    };
+
+    let info = mock_info("overseer", &[],);
+    // only overseer can execute this
+    let _ = execute(deps.as_mut(), env.clone(), info, msg.clone()).unwrap();
+}

@@ -9,7 +9,7 @@ use crate::state::{
 use bigint::U256;
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::{
-    attr, to_binary, BankMsg, CanonicalAddr, Coin, CosmosMsg, DepsMut, Env, MessageInfo, Response,
+    attr, to_json_binary, BankMsg, CanonicalAddr, Coin, CosmosMsg, DepsMut, Env, MessageInfo, Response,
     StdError, StdResult, Storage, Uint128, WasmMsg,
 };
 use cw20::Cw20ExecuteMsg;
@@ -521,7 +521,7 @@ pub fn claim_liquidations(
         messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: collateral_token.clone(),
             funds: vec![],
-            msg: to_binary(&Cw20ExecuteMsg::Transfer {
+            msg: to_json_binary(&Cw20ExecuteMsg::Transfer {
                 recipient: info.sender.to_string(),
                 amount: claim_amount.into(),
             })?,

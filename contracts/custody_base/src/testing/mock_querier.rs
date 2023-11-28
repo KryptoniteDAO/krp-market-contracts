@@ -1,13 +1,14 @@
 use cosmwasm_std::testing::{MockApi, MockQuerier, MockStorage, MOCK_CONTRACT_ADDR};
 use cosmwasm_std::{
-    from_slice, to_binary, Addr, Api, BalanceResponse, BankQuery, CanonicalAddr, Coin,
+    from_json, to_json_binary, Addr, Api, BalanceResponse, BankQuery, CanonicalAddr, Coin,
     ContractResult, Decimal, OwnedDeps, Querier, QuerierResult, QueryRequest, SystemError,
     SystemResult, Uint128, WasmQuery,
 };
 use cosmwasm_storage::to_length_prefixed;
 use cw20::TokenInfoResponse;
+use moneymarket::common::{QueryTaxWrapper, TaxRateResponse, QueryTaxMsg, TaxCapResponse};
 use std::collections::HashMap;
-use terra_cosmwasm::{TaxCapResponse, TaxRateResponse, TerraQuery, TerraQueryWrapper, TerraRoute};
+
 
 /// mock_dependencies is a drop-in replacement for cosmwasm_std::testing::mock_dependencies
 /// this uses our CustomQuerier.
@@ -21,11 +22,13 @@ pub fn mock_dependencies(
         storage: MockStorage::default(),
         api: MockApi::default(),
         querier: custom_querier,
+        custom_query_type: Default::default(),
     }
 }
 
+
 pub struct WasmMockQuerier {
-    base: MockQuerier<TerraQueryWrapper>,
+    base: MockQuerier<QueryTaxWrapper>,
     token_querier: TokenQuerier,
     reward_balance: Uint128,
     other_balance: Uint128,
@@ -48,7 +51,7 @@ pub struct TaxQuerier {
 impl Querier for WasmMockQuerier {
     fn raw_query(&self, bin_request: &[u8]) -> QuerierResult {
         // MockQuerier doesn't support Custom, so we ignore it completely here
-        let request: QueryRequest<TerraQueryWrapper> = match from_slice(bin_request) {
+        let request: QueryRequest<QueryTaxWrapper> = match from_json(bin_request) {
             Ok(v) => v,
             Err(e) => {
                 return SystemResult::Err(SystemError::InvalidRequest {
@@ -62,33 +65,30 @@ impl Querier for WasmMockQuerier {
 }
 
 impl WasmMockQuerier {
-    pub fn handle_query(&self, request: &QueryRequest<TerraQueryWrapper>) -> QuerierResult {
+    pub fn handle_query(&self, request: &QueryRequest<QueryTaxWrapper>) -> QuerierResult {
         match &request {
-            QueryRequest::Custom(TerraQueryWrapper { route, query_data }) => {
-                if &TerraRoute::Treasury == route {
-                    match query_data {
-                        TerraQuery::TaxRate {} => {
-                            let res = TaxRateResponse {
-                                rate: self.tax_querier.rate,
-                            };
-                            SystemResult::Ok(ContractResult::from(to_binary(&res)))
-                        }
-                        TerraQuery::TaxCap { denom } => {
-                            let cap = self
-                                .tax_querier
-                                .caps
-                                .get(denom)
-                                .copied()
-                                .unwrap_or_default();
-                            let res = TaxCapResponse { cap };
-                            SystemResult::Ok(ContractResult::from(to_binary(&res)))
-                        }
-                        _ => panic!("DO NOT ENTER HERE"),
+            QueryRequest::Custom(QueryTaxWrapper { query_data }) => {
+                match query_data {
+                    QueryTaxMsg::TaxRate {} => {
+                        let res = TaxRateResponse {
+                            rate: self.tax_querier.rate,
+                        };
+                        SystemResult::Ok(ContractResult::from(to_json_binary(&res)))
                     }
-                } else {
-                    panic!("DO NOT ENTER HERE")
+                    QueryTaxMsg::TaxCap { denom } => {
+                        let cap = self
+                            .tax_querier
+                            .caps
+                            .get(denom)
+                            .copied()
+                            .unwrap_or_default();
+                        let res = TaxCapResponse { cap };
+                        SystemResult::Ok(ContractResult::from(to_json_binary(&res)))
+                    }
+                    _ => panic!("DO NOT ENTER HERE"),
                 }
-            }
+            } 
+            
             QueryRequest::Wasm(WasmQuery::Raw { contract_addr, key }) => {
                 let key: &[u8] = key.as_slice();
 
@@ -116,8 +116,8 @@ impl WasmMockQuerier {
                         total_supply += *balance.1;
                     }
 
-                    SystemResult::Ok(ContractResult::from(to_binary(
-                        &to_binary(&TokenInfoResponse {
+                    SystemResult::Ok(ContractResult::from(to_json_binary(
+                        &to_json_binary(&TokenInfoResponse {
                             name: "mAPPL".to_string(),
                             symbol: "mAPPL".to_string(),
                             decimals: 6,
@@ -147,8 +147,8 @@ impl WasmMockQuerier {
                             })
                         }
                     };
-                    SystemResult::Ok(ContractResult::from(to_binary(
-                        &to_binary(&balance).unwrap(),
+                    SystemResult::Ok(ContractResult::from(to_json_binary(
+                        &to_json_binary(&balance).unwrap(),
                     )))
                 } else {
                     panic!("DO NOT ENTER HERE")
@@ -162,7 +162,7 @@ impl WasmMockQuerier {
                             denom: denom.to_string(),
                         },
                     };
-                    SystemResult::Ok(ContractResult::from(to_binary(&bank_res)))
+                    SystemResult::Ok(ContractResult::from(to_json_binary(&bank_res)))
                 } else {
                     let bank_res = BalanceResponse {
                         amount: Coin {
@@ -170,7 +170,7 @@ impl WasmMockQuerier {
                             denom: denom.to_string(),
                         },
                     };
-                    SystemResult::Ok(ContractResult::from(to_binary(&bank_res)))
+                    SystemResult::Ok(ContractResult::from(to_json_binary(&bank_res)))
                 }
             }
             _ => self.base.handle_query(request),
@@ -179,7 +179,7 @@ impl WasmMockQuerier {
 }
 
 impl WasmMockQuerier {
-    pub fn new(base: MockQuerier<TerraQueryWrapper>) -> Self {
+    pub fn new(base: MockQuerier<QueryTaxWrapper>) -> Self {
         WasmMockQuerier {
             base,
             token_querier: TokenQuerier::default(),

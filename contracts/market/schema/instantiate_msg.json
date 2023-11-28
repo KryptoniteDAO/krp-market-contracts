@@ -3,26 +3,26 @@
   "title": "InstantiateMsg",
   "type": "object",
   "required": [
-    "kpt_emission_rate",
     "atoken_code_id",
+    "kpt_emission_rate",
     "max_borrow_factor",
     "owner_addr",
     "stable_denom"
   ],
   "properties": {
-    "kpt_emission_rate": {
-      "description": "kryptonite token distribution speed",
-      "allOf": [
-        {
-          "$ref": "#/definitions/Decimal256"
-        }
-      ]
-    },
     "atoken_code_id": {
       "description": "Kryptonite token code ID used to instantiate",
       "type": "integer",
       "format": "uint64",
       "minimum": 0.0
+    },
+    "kpt_emission_rate": {
+      "description": "Kryptonite token distribution speed",
+      "allOf": [
+        {
+          "$ref": "#/definitions/Decimal256"
+        }
+      ]
     },
     "max_borrow_factor": {
       "description": "Maximum allowed borrow rate over deposited stable balance",

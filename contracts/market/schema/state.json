@@ -3,9 +3,9 @@
   "title": "State",
   "type": "object",
   "required": [
-    "kpt_emission_rate",
     "global_interest_index",
     "global_reward_index",
+    "kpt_emission_rate",
     "last_interest_updated",
     "last_reward_updated",
     "prev_atoken_supply",
@@ -14,13 +14,13 @@
     "total_reserves"
   ],
   "properties": {
-    "kpt_emission_rate": {
-      "$ref": "#/definitions/Decimal256"
-    },
     "global_interest_index": {
       "$ref": "#/definitions/Decimal256"
     },
     "global_reward_index": {
+      "$ref": "#/definitions/Decimal256"
+    },
+    "kpt_emission_rate": {
       "$ref": "#/definitions/Decimal256"
     },
     "last_interest_updated": {

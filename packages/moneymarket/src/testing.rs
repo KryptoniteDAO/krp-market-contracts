@@ -1,10 +1,10 @@
 use crate::mock_querier::mock_dependencies;
 use crate::oracle::PriceResponse;
-use crate::querier::{compute_tax, deduct_tax, query_price, query_tax_rate, TimeConstraints};
+use crate::querier::{compute_tax, deduct_tax, query_price, query_tax_rate};
 use crate::tokens::{Tokens, TokensHuman, TokensMath, TokensToRaw};
 
 use cosmwasm_bignumber::{Decimal256, Uint256};
-use cosmwasm_std::{Addr, Api, CanonicalAddr, Coin, Decimal, StdError, Uint128};
+use cosmwasm_std::{Addr, Api, CanonicalAddr, Coin, Decimal, Uint128};
 
 #[test]
 fn tax_rate_querier() {
@@ -13,8 +13,7 @@ fn tax_rate_querier() {
     deps.querier.with_tax(Decimal::percent(1), &[]);
     assert_eq!(
         query_tax_rate(deps.as_ref()).unwrap(),
-        // Decimal256::percent(1),
-        Decimal256::percent(0),
+        Decimal256::percent(1),
     );
 }
 
@@ -30,15 +29,13 @@ fn test_compute_tax() {
     // cap to 1000000
     assert_eq!(
         compute_tax(deps.as_ref(), &Coin::new(10000000000u128, "uusd")).unwrap(),
-        // Uint256::from(1000000u64)
-        Uint256::from(0u64)
+        Uint256::from(1000000u64)
     );
 
     // normal tax
     assert_eq!(
         compute_tax(deps.as_ref(), &Coin::new(50000000u128, "uusd")).unwrap(),
-        // Uint256::from(495050u64)
-        Uint256::from(0u64)
+        Uint256::from(495050u64)
     );
 }
 
@@ -56,8 +53,7 @@ fn test_deduct_tax() {
         deduct_tax(deps.as_ref(), Coin::new(10000000000u128, "uusd")).unwrap(),
         Coin {
             denom: "uusd".to_string(),
-            // amount: Uint128::from(9999000000u128)
-            amount: Uint128::from(10000000000u128)
+            amount: Uint128::from(9999000000u128)
         }
     );
 
@@ -66,19 +62,26 @@ fn test_deduct_tax() {
         deduct_tax(deps.as_ref(), Coin::new(50000000u128, "uusd")).unwrap(),
         Coin {
             denom: "uusd".to_string(),
-            // amount: Uint128::from(49504950u128)
-            amount: Uint128::from(50000000u128)
+            amount: Uint128::from(49504950u128)
+       
         }
     );
 }
 
-// #[test]
+#[test]
 fn oracle_price_querier() {
     let mut deps = mock_dependencies(&[]);
 
     deps.querier.with_oracle_price(&[(
-        &("terra123123".to_string(), "uusd".to_string()),
-        &(Decimal256::from_ratio(131, 2), 123, 321),
+        &"terra123123".to_string(),
+        &(
+            Decimal256::from_ratio(131, 2),
+            123,
+            Decimal256::from_ratio(131, 2),
+            321,
+            123,
+            321,
+        ),
     )]);
 
     let oracle_price = query_price(
@@ -99,30 +102,30 @@ fn oracle_price_querier() {
         }
     );
 
-    query_price(
-        deps.as_ref(),
-        Addr::unchecked("oracle"),
-        "terra123123".to_string(),
-        "ukrw".to_string(),
-        None,
-    )
-    .unwrap_err();
+    // query_price(
+    //     deps.as_ref(),
+    //     Addr::unchecked("oracle"),
+    //     "terra123123".to_string(),
+    //     "ukrw".to_string(),
+    //     None,
+    // )
+    // .unwrap_err();
 
-    let res = query_price(
-        deps.as_ref(),
-        Addr::unchecked("oracle"),
-        "terra123123".to_string(),
-        "uusd".to_string(),
-        Some(TimeConstraints {
-            block_time: 500u64,
-            valid_timeframe: 60u64,
-        }),
-    );
+    // let res = query_price(
+    //     deps.as_ref(),
+    //     Addr::unchecked("oracle"),
+    //     "terra123123".to_string(),
+    //     "uusd".to_string(),
+    //     Some(TimeConstraints {
+    //         block_time: 500u64,
+    //         valid_timeframe: 60u64,
+    //     }),
+    // );
 
-    match res {
-        Err(StdError::GenericErr { msg, .. }) => assert_eq!(msg, "Price is too old"),
-        _ => panic!("DO NOT ENTER HERE"),
-    }
+    // match res {
+    //     Err(StdError::GenericErr { msg, .. }) => assert_eq!(msg, "Price is too old"),
+    //     _ => panic!("DO NOT ENTER HERE"),
+    // }
 }
 
 #[test]

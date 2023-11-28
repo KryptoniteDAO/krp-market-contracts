@@ -2,7 +2,7 @@ use crate::contract::{execute, instantiate, query};
 use crate::testing::mock_querier::mock_dependencies;
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::testing::{mock_env, mock_info};
-use cosmwasm_std::{from_binary, to_binary, BankMsg, Coin, CosmosMsg, Decimal, SubMsg, Uint128};
+use cosmwasm_std::{from_json, to_json_binary, BankMsg, Coin, CosmosMsg, Decimal, SubMsg, Uint128};
 use cw20::Cw20ReceiveMsg;
 use moneymarket::liquidation_queue::{
     Cw20HookMsg, ExecuteMsg, InstantiateMsg, LiquidationAmountResponse, QueryMsg,
@@ -64,7 +64,7 @@ fn partial_one_collateral_one_slot_high_ltv() {
     };
 
     let res = query(deps.as_ref(), mock_env(), msg).unwrap();
-    let res: LiquidationAmountResponse = from_binary(&res).unwrap();
+    let res: LiquidationAmountResponse = from_json(&res).unwrap();
     assert_eq!(
         res,
         LiquidationAmountResponse {
@@ -82,9 +82,12 @@ fn partial_one_collateral_one_slot_high_ltv() {
     let info = mock_info("token0000", &[]);
     let env = mock_env();
     deps.querier.with_oracle_price(&[(
-        &("token0000".to_string(), "uusd".to_string()),
+        &("token0000".to_string()),
         &(
             Decimal256::percent(100),
+            1000000,
+            Decimal256::percent(100),
+            1000000,
             env.block.time.seconds(),
             env.block.time.seconds(),
         ),
@@ -93,7 +96,7 @@ fn partial_one_collateral_one_slot_high_ltv() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "custody0000".to_string(),
         amount: Uint128::from(16433u64),
-        msg: to_binary(&Cw20HookMsg::ExecuteBid {
+        msg: to_json_binary(&Cw20HookMsg::ExecuteBid {
             liquidator: "liquidator00000".to_string(),
             fee_address: Some("fee0000".to_string()),
             repay_address: Some("repay0000".to_string()),
@@ -170,7 +173,7 @@ fn partial_one_collateral_one_slot() {
     };
 
     let res = query(deps.as_ref(), mock_env(), msg).unwrap();
-    let res: LiquidationAmountResponse = from_binary(&res).unwrap();
+    let res: LiquidationAmountResponse = from_json(&res).unwrap();
     assert_eq!(
         res,
         LiquidationAmountResponse {
@@ -188,9 +191,12 @@ fn partial_one_collateral_one_slot() {
     let info = mock_info("token0000", &[]);
     let env = mock_env();
     deps.querier.with_oracle_price(&[(
-        &("token0000".to_string(), "uusd".to_string()),
+        &("token0000".to_string()),
         &(
             Decimal256::percent(10),
+            100000,
+            Decimal256::percent(10),
+            100000,
             env.block.time.seconds(),
             env.block.time.seconds(),
         ),
@@ -199,7 +205,7 @@ fn partial_one_collateral_one_slot() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "custody0000".to_string(),
         amount: Uint128::from(7291u64),
-        msg: to_binary(&Cw20HookMsg::ExecuteBid {
+        msg: to_json_binary(&Cw20HookMsg::ExecuteBid {
             liquidator: "liquidator00000".to_string(),
             fee_address: Some("fee0000".to_string()),
             repay_address: Some("repay0000".to_string()),
@@ -276,7 +282,7 @@ fn partial_one_collateral_one_slot_with_fees() {
     };
 
     let res = query(deps.as_ref(), mock_env(), msg).unwrap();
-    let res: LiquidationAmountResponse = from_binary(&res).unwrap();
+    let res: LiquidationAmountResponse = from_json(&res).unwrap();
     assert_eq!(
         res,
         LiquidationAmountResponse {
@@ -294,9 +300,12 @@ fn partial_one_collateral_one_slot_with_fees() {
     let info = mock_info("token0000", &[]);
     let env = mock_env();
     deps.querier.with_oracle_price(&[(
-        &("token0000".to_string(), "uusd".to_string()),
+        &("token0000".to_string()),
         &(
             Decimal256::percent(10),
+            100000,
+            Decimal256::percent(10),
+            100000,
             env.block.time.seconds(),
             env.block.time.seconds(),
         ),
@@ -305,7 +314,7 @@ fn partial_one_collateral_one_slot_with_fees() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "custody0000".to_string(),
         amount: Uint128::from(7551u64),
-        msg: to_binary(&Cw20HookMsg::ExecuteBid {
+        msg: to_json_binary(&Cw20HookMsg::ExecuteBid {
             liquidator: "liquidator00000".to_string(),
             fee_address: Some("fee0000".to_string()),
             repay_address: Some("repay0000".to_string()),
@@ -391,7 +400,7 @@ fn partial_one_collateral_one_slot_with_fees_all() {
     };
 
     let res = query(deps.as_ref(), mock_env(), msg).unwrap();
-    let res: LiquidationAmountResponse = from_binary(&res).unwrap();
+    let res: LiquidationAmountResponse = from_json(&res).unwrap();
     assert_eq!(
         res,
         LiquidationAmountResponse {
@@ -409,9 +418,12 @@ fn partial_one_collateral_one_slot_with_fees_all() {
     let info = mock_info("token0000", &[]);
     let env = mock_env();
     deps.querier.with_oracle_price(&[(
-        &("token0000".to_string(), "uusd".to_string()),
+        &("token0000".to_string() ),
         &(
             Decimal256::percent(10),
+            100000,
+            Decimal256::percent(10),
+            100000,
             env.block.time.seconds(),
             env.block.time.seconds(),
         ),
@@ -420,7 +432,7 @@ fn partial_one_collateral_one_slot_with_fees_all() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "custody0000".to_string(),
         amount: Uint128::from(7686u64),
-        msg: to_binary(&Cw20HookMsg::ExecuteBid {
+        msg: to_json_binary(&Cw20HookMsg::ExecuteBid {
             liquidator: "liquidator00000".to_string(),
             fee_address: Some("fee0000".to_string()),
             repay_address: Some("repay0000".to_string()),
@@ -518,7 +530,7 @@ fn partial_one_collateral_two_slots() {
     };
 
     let res = query(deps.as_ref(), mock_env(), msg).unwrap();
-    let res: LiquidationAmountResponse = from_binary(&res).unwrap();
+    let res: LiquidationAmountResponse = from_json(&res).unwrap();
     assert_eq!(
         res,
         LiquidationAmountResponse {
@@ -538,9 +550,12 @@ fn partial_one_collateral_two_slots() {
     let info = mock_info("token0000", &[]);
     let env = mock_env();
     deps.querier.with_oracle_price(&[(
-        &("token0000".to_string(), "uusd".to_string()),
+        &("token0000".to_string()),
         &(
             Decimal256::percent(10),
+            100000,
+            Decimal256::percent(10),
+            100000,
             env.block.time.seconds(),
             env.block.time.seconds(),
         ),
@@ -549,7 +564,7 @@ fn partial_one_collateral_two_slots() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "custody0000".to_string(),
         amount: Uint128::from(42860u64),
-        msg: to_binary(&Cw20HookMsg::ExecuteBid {
+        msg: to_json_binary(&Cw20HookMsg::ExecuteBid {
             liquidator: "liquidator00000".to_string(),
             fee_address: Some("fee0000".to_string()),
             repay_address: Some("repay0000".to_string()),
@@ -631,7 +646,7 @@ fn partial_one_collateral_two_slots_with_fees() {
     };
 
     let res = query(deps.as_ref(), mock_env(), msg).unwrap();
-    let res: LiquidationAmountResponse = from_binary(&res).unwrap();
+    let res: LiquidationAmountResponse = from_json(&res).unwrap();
     assert_eq!(
         res,
         LiquidationAmountResponse {
@@ -651,9 +666,12 @@ fn partial_one_collateral_two_slots_with_fees() {
     let info = mock_info("token0000", &[]);
     let env = mock_env();
     deps.querier.with_oracle_price(&[(
-        &("token0000".to_string(), "uusd".to_string()),
+        &("token0000".to_string()),
         &(
             Decimal256::percent(10),
+            100000,
+            Decimal256::percent(10),
+            100000,
             env.block.time.seconds(),
             env.block.time.seconds(),
         ),
@@ -662,7 +680,7 @@ fn partial_one_collateral_two_slots_with_fees() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "custody0000".to_string(),
         amount: Uint128::from(44453u64),
-        msg: to_binary(&Cw20HookMsg::ExecuteBid {
+        msg: to_json_binary(&Cw20HookMsg::ExecuteBid {
             liquidator: "liquidator00000".to_string(),
             fee_address: Some("fee0000".to_string()),
             repay_address: Some("repay0000".to_string()),
@@ -748,7 +766,7 @@ fn non_partial_liquidation() {
     };
 
     let res = query(deps.as_ref(), mock_env(), msg).unwrap();
-    let res: LiquidationAmountResponse = from_binary(&res).unwrap();
+    let res: LiquidationAmountResponse = from_json(&res).unwrap();
     assert_eq!(
         res,
         LiquidationAmountResponse {
@@ -759,9 +777,12 @@ fn non_partial_liquidation() {
     let info = mock_info("token0000", &[]);
     let env = mock_env();
     deps.querier.with_oracle_price(&[(
-        &("token0000".to_string(), "uusd".to_string()),
+        &("token0000".to_string()),
         &(
             Decimal256::percent(10),
+            100000,
+            Decimal256::percent(10),
+            100000,
             env.block.time.seconds(),
             env.block.time.seconds(),
         ),
@@ -770,7 +791,7 @@ fn non_partial_liquidation() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "custody0000".to_string(),
         amount: Uint128::from(12643u64),
-        msg: to_binary(&Cw20HookMsg::ExecuteBid {
+        msg: to_json_binary(&Cw20HookMsg::ExecuteBid {
             liquidator: "liquidator00000".to_string(),
             fee_address: Some("fee0000".to_string()),
             repay_address: Some("repay0000".to_string()),
@@ -852,7 +873,7 @@ fn non_partial_liquidation_two_slots() {
     };
 
     let res = query(deps.as_ref(), mock_env(), msg).unwrap();
-    let res: LiquidationAmountResponse = from_binary(&res).unwrap();
+    let res: LiquidationAmountResponse = from_json(&res).unwrap();
     assert_eq!(
         res,
         LiquidationAmountResponse {
@@ -863,9 +884,12 @@ fn non_partial_liquidation_two_slots() {
     let info = mock_info("token0000", &[]);
     let env = mock_env();
     deps.querier.with_oracle_price(&[(
-        &("token0000".to_string(), "uusd".to_string()),
+        &("token0000".to_string()),
         &(
             Decimal256::percent(10),
+            100000,
+            Decimal256::percent(10),
+            100000,
             env.block.time.seconds(),
             env.block.time.seconds(),
         ),
@@ -874,7 +898,7 @@ fn non_partial_liquidation_two_slots() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "custody0000".to_string(),
         amount: Uint128::from(12756u64),
-        msg: to_binary(&Cw20HookMsg::ExecuteBid {
+        msg: to_json_binary(&Cw20HookMsg::ExecuteBid {
             liquidator: "liquidator00000".to_string(),
             fee_address: Some("fee0000".to_string()),
             repay_address: Some("repay0000".to_string()),
@@ -951,7 +975,7 @@ fn non_partial_liquidation_with_fees() {
     };
 
     let res = query(deps.as_ref(), mock_env(), msg).unwrap();
-    let res: LiquidationAmountResponse = from_binary(&res).unwrap();
+    let res: LiquidationAmountResponse = from_json(&res).unwrap();
     assert_eq!(
         res,
         LiquidationAmountResponse {
@@ -962,9 +986,12 @@ fn non_partial_liquidation_with_fees() {
     let info = mock_info("token0000", &[]);
     let env = mock_env();
     deps.querier.with_oracle_price(&[(
-        &("token0000".to_string(), "uusd".to_string()),
+        &("token0000".to_string()),
         &(
             Decimal256::percent(10),
+            100000,
+            Decimal256::percent(10),
+            100000,
             env.block.time.seconds(),
             env.block.time.seconds(),
         ),
@@ -973,7 +1000,7 @@ fn non_partial_liquidation_with_fees() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "custody0000".to_string(),
         amount: Uint128::from(12899u64),
-        msg: to_binary(&Cw20HookMsg::ExecuteBid {
+        msg: to_json_binary(&Cw20HookMsg::ExecuteBid {
             liquidator: "liquidator00000".to_string(),
             fee_address: Some("fee0000".to_string()),
             repay_address: Some("repay0000".to_string()),
@@ -1064,7 +1091,7 @@ fn non_partial_liquidation_two_slots_with_fees() {
     };
 
     let res = query(deps.as_ref(), mock_env(), msg).unwrap();
-    let res: LiquidationAmountResponse = from_binary(&res).unwrap();
+    let res: LiquidationAmountResponse = from_json(&res).unwrap();
     assert_eq!(
         res,
         LiquidationAmountResponse {
@@ -1075,9 +1102,12 @@ fn non_partial_liquidation_two_slots_with_fees() {
     let info = mock_info("token0000", &[]);
     let env = mock_env();
     deps.querier.with_oracle_price(&[(
-        &("token0000".to_string(), "uusd".to_string()),
+        &("token0000".to_string()),
         &(
             Decimal256::percent(10),
+            100000,
+            Decimal256::percent(10),
+            100000,
             env.block.time.seconds(),
             env.block.time.seconds(),
         ),
@@ -1086,7 +1116,7 @@ fn non_partial_liquidation_two_slots_with_fees() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "custody0000".to_string(),
         amount: Uint128::from(13015u64),
-        msg: to_binary(&Cw20HookMsg::ExecuteBid {
+        msg: to_json_binary(&Cw20HookMsg::ExecuteBid {
             liquidator: "liquidator00000".to_string(),
             fee_address: Some("fee0000".to_string()),
             repay_address: Some("repay0000".to_string()),
@@ -1177,7 +1207,7 @@ fn non_partial_liquidation_two_slots_with_fees_big_nums() {
     };
 
     let res = query(deps.as_ref(), mock_env(), msg).unwrap();
-    let res: LiquidationAmountResponse = from_binary(&res).unwrap();
+    let res: LiquidationAmountResponse = from_json(&res).unwrap();
     assert_eq!(
         res,
         LiquidationAmountResponse {
@@ -1188,9 +1218,12 @@ fn non_partial_liquidation_two_slots_with_fees_big_nums() {
     let info = mock_info("token0000", &[]);
     let env = mock_env();
     deps.querier.with_oracle_price(&[(
-        &("token0000".to_string(), "uusd".to_string()),
+        &("token0000".to_string()),
         &(
             Decimal256::percent(10),
+            100000,
+            Decimal256::percent(10),
+            100000,
             env.block.time.seconds(),
             env.block.time.seconds(),
         ),
@@ -1199,7 +1232,7 @@ fn non_partial_liquidation_two_slots_with_fees_big_nums() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "custody0000".to_string(),
         amount: Uint128::from(13833067518u64),
-        msg: to_binary(&Cw20HookMsg::ExecuteBid {
+        msg: to_json_binary(&Cw20HookMsg::ExecuteBid {
             liquidator: "liquidator00000".to_string(),
             fee_address: Some("fee0000".to_string()),
             repay_address: Some("repay0000".to_string()),
@@ -1302,7 +1335,7 @@ fn partial_two_collaterals_ltv_diff() {
     };
 
     let res = query(deps.as_ref(), mock_env(), msg).unwrap();
-    let res: LiquidationAmountResponse = from_binary(&res).unwrap();
+    let res: LiquidationAmountResponse = from_json(&res).unwrap();
     assert_eq!(
         res,
         LiquidationAmountResponse {
@@ -1328,17 +1361,23 @@ fn partial_two_collaterals_ltv_diff() {
     let env = mock_env();
     deps.querier.with_oracle_price(&[
         (
-            &("token0000".to_string(), "uusd".to_string()),
+            &("token0000".to_string()),
             &(
                 Decimal256::percent(100),
+                1000000,
+                Decimal256::percent(100),
+                1000000,
                 env.block.time.seconds(),
                 env.block.time.seconds(),
             ),
         ),
         (
-            &("token0001".to_string(), "uusd".to_string()),
+            &("token0001".to_string()),
             &(
                 Decimal256::percent(100),
+                1000000,
+                Decimal256::percent(10),
+                1000000,
                 env.block.time.seconds(),
                 env.block.time.seconds(),
             ),
@@ -1348,7 +1387,7 @@ fn partial_two_collaterals_ltv_diff() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "custody0000".to_string(),
         amount: Uint128::from(19230775u64),
-        msg: to_binary(&Cw20HookMsg::ExecuteBid {
+        msg: to_json_binary(&Cw20HookMsg::ExecuteBid {
             liquidator: "liquidator00000".to_string(),
             fee_address: Some("fee0000".to_string()),
             repay_address: Some("repay0000".to_string()),
@@ -1372,7 +1411,7 @@ fn partial_two_collaterals_ltv_diff() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "custody0000".to_string(),
         amount: Uint128::from(399193550u64),
-        msg: to_binary(&Cw20HookMsg::ExecuteBid {
+        msg: to_json_binary(&Cw20HookMsg::ExecuteBid {
             liquidator: "liquidator00000".to_string(),
             fee_address: Some("fee0000".to_string()),
             repay_address: Some("repay0000".to_string()),
@@ -1477,7 +1516,7 @@ fn partial_two_collaterals_multi_slots_per_col() {
     };
 
     let res = query(deps.as_ref(), mock_env(), msg).unwrap();
-    let res: LiquidationAmountResponse = from_binary(&res).unwrap();
+    let res: LiquidationAmountResponse = from_json(&res).unwrap();
     assert_eq!(
         res,
         LiquidationAmountResponse {
@@ -1503,17 +1542,23 @@ fn partial_two_collaterals_multi_slots_per_col() {
     let env = mock_env();
     deps.querier.with_oracle_price(&[
         (
-            &("token0000".to_string(), "uusd".to_string()),
+            &("token0000".to_string()),
             &(
                 Decimal256::percent(10),
+                100000,
+                Decimal256::percent(10),
+                100000,
                 env.block.time.seconds(),
                 env.block.time.seconds(),
             ),
         ),
         (
-            &("token0001".to_string(), "uusd".to_string()),
+            &("token0001".to_string()),
             &(
                 Decimal256::percent(5),
+                50000,
+                Decimal256::percent(5),
+                50000,
                 env.block.time.seconds(),
                 env.block.time.seconds(),
             ),
@@ -1523,7 +1568,7 @@ fn partial_two_collaterals_multi_slots_per_col() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "custody0000".to_string(),
         amount: Uint128::from(3796u64),
-        msg: to_binary(&Cw20HookMsg::ExecuteBid {
+        msg: to_json_binary(&Cw20HookMsg::ExecuteBid {
             liquidator: "liquidator00000".to_string(),
             fee_address: Some("fee0000".to_string()),
             repay_address: Some("repay0000".to_string()),
@@ -1547,7 +1592,7 @@ fn partial_two_collaterals_multi_slots_per_col() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "custody0000".to_string(),
         amount: Uint128::from(9637u64),
-        msg: to_binary(&Cw20HookMsg::ExecuteBid {
+        msg: to_json_binary(&Cw20HookMsg::ExecuteBid {
             liquidator: "liquidator00000".to_string(),
             fee_address: Some("fee0000".to_string()),
             repay_address: Some("repay0000".to_string()),
@@ -1642,7 +1687,7 @@ fn partial_two_collaterals_one_slot_diff_ltv() {
     };
 
     let res = query(deps.as_ref(), mock_env(), msg).unwrap();
-    let res: LiquidationAmountResponse = from_binary(&res).unwrap();
+    let res: LiquidationAmountResponse = from_json(&res).unwrap();
     assert_eq!(
         res,
         LiquidationAmountResponse {
@@ -1668,17 +1713,23 @@ fn partial_two_collaterals_one_slot_diff_ltv() {
     let env = mock_env();
     deps.querier.with_oracle_price(&[
         (
-            &("token0000".to_string(), "uusd".to_string()),
+            &("token0000".to_string()),
             &(
                 Decimal256::percent(10),
+                100000,
+                Decimal256::percent(10),
+                100000,
                 env.block.time.seconds(),
                 env.block.time.seconds(),
             ),
         ),
         (
-            &("token0001".to_string(), "uusd".to_string()),
+            &("token0001".to_string()),
             &(
                 Decimal256::percent(5),
+                50000,
+                Decimal256::percent(5),
+                50000,
                 env.block.time.seconds(),
                 env.block.time.seconds(),
             ),
@@ -1688,7 +1739,7 @@ fn partial_two_collaterals_one_slot_diff_ltv() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "custody0000".to_string(),
         amount: Uint128::from(3037u64),
-        msg: to_binary(&Cw20HookMsg::ExecuteBid {
+        msg: to_json_binary(&Cw20HookMsg::ExecuteBid {
             liquidator: "liquidator00000".to_string(),
             fee_address: Some("fee0000".to_string()),
             repay_address: Some("repay0000".to_string()),
@@ -1712,7 +1763,7 @@ fn partial_two_collaterals_one_slot_diff_ltv() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "custody0000".to_string(),
         amount: Uint128::from(7775u64),
-        msg: to_binary(&Cw20HookMsg::ExecuteBid {
+        msg: to_json_binary(&Cw20HookMsg::ExecuteBid {
             liquidator: "liquidator00000".to_string(),
             fee_address: Some("fee0000".to_string()),
             repay_address: Some("repay0000".to_string()),
@@ -1825,7 +1876,7 @@ fn partial_three_collaterals_one_slot_diff_ltv() {
     };
 
     let res = query(deps.as_ref(), mock_env(), msg).unwrap();
-    let res: LiquidationAmountResponse = from_binary(&res).unwrap();
+    let res: LiquidationAmountResponse = from_json(&res).unwrap();
     assert_eq!(
         res,
         LiquidationAmountResponse {
@@ -1854,25 +1905,34 @@ fn partial_three_collaterals_one_slot_diff_ltv() {
     let env = mock_env();
     deps.querier.with_oracle_price(&[
         (
-            &("token0000".to_string(), "uusd".to_string()),
+            &("token0000".to_string()),
             &(
                 Decimal256::percent(10),
+                100000,
+                Decimal256::percent(10),
+                100000,
                 env.block.time.seconds(),
                 env.block.time.seconds(),
             ),
         ),
         (
-            &("token0001".to_string(), "uusd".to_string()),
+            &("token0001".to_string()),
             &(
-                Decimal256::percent(5),
+                Decimal256::from_ratio(50000, 1000000),
+                50000,
+                Decimal256::from_ratio(50000, 1000000),
+                50000,
                 env.block.time.seconds(),
                 env.block.time.seconds(),
             ),
         ),
         (
-            &("token0002".to_string(), "uusd".to_string()),
+            &("token0002".to_string()),
             &(
-                Decimal256::percent(110),
+                Decimal256::from_ratio(1100000, 1000000),
+                1100000,
+                Decimal256::from_ratio(1100000, 1000000),
+                1100000,
                 env.block.time.seconds(),
                 env.block.time.seconds(),
             ),
@@ -1882,7 +1942,7 @@ fn partial_three_collaterals_one_slot_diff_ltv() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "custody0000".to_string(),
         amount: Uint128::from(3328u64),
-        msg: to_binary(&Cw20HookMsg::ExecuteBid {
+        msg: to_json_binary(&Cw20HookMsg::ExecuteBid {
             liquidator: "liquidator00000".to_string(),
             fee_address: Some("fee0000".to_string()),
             repay_address: Some("repay0000".to_string()),
@@ -1906,7 +1966,7 @@ fn partial_three_collaterals_one_slot_diff_ltv() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "custody0000".to_string(),
         amount: Uint128::from(5824u64),
-        msg: to_binary(&Cw20HookMsg::ExecuteBid {
+        msg: to_json_binary(&Cw20HookMsg::ExecuteBid {
             liquidator: "liquidator00000".to_string(),
             fee_address: Some("fee0000".to_string()),
             repay_address: Some("repay0000".to_string()),
@@ -1930,7 +1990,7 @@ fn partial_three_collaterals_one_slot_diff_ltv() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "custody0000".to_string(),
         amount: Uint128::from(1210u64),
-        msg: to_binary(&Cw20HookMsg::ExecuteBid {
+        msg: to_json_binary(&Cw20HookMsg::ExecuteBid {
             liquidator: "liquidator00000".to_string(),
             fee_address: Some("fee0000".to_string()),
             repay_address: Some("repay0000".to_string()),
@@ -2048,7 +2108,7 @@ fn partial_three_collaterals_one_slot_diff_ltv_big_amounts() {
     };
 
     let res = query(deps.as_ref(), mock_env(), msg).unwrap();
-    let res: LiquidationAmountResponse = from_binary(&res).unwrap();
+    let res: LiquidationAmountResponse = from_json(&res).unwrap();
     assert_eq!(
         res,
         LiquidationAmountResponse {
@@ -2078,25 +2138,34 @@ fn partial_three_collaterals_one_slot_diff_ltv_big_amounts() {
     let env = mock_env();
     deps.querier.with_oracle_price(&[
         (
-            &("token0000".to_string(), "uusd".to_string()),
+            &("token0000".to_string()),
             &(
                 Decimal256::percent(1000),
+                10000000,
+                Decimal256::percent(1000),
+                10000000,
                 env.block.time.seconds(),
                 env.block.time.seconds(),
             ),
         ),
         (
-            &("token0001".to_string(), "uusd".to_string()),
+            &("token0001".to_string()),
             &(
                 Decimal256::percent(500),
+                5000000,
+                Decimal256::percent(500),
+                5000000,
                 env.block.time.seconds(),
                 env.block.time.seconds(),
             ),
         ),
         (
-            &("token0002".to_string(), "uusd".to_string()),
+            &("token0002".to_string()),
             &(
                 Decimal256::percent(11000),
+                110000000,
+                Decimal256::percent(11000),
+                110000000,
                 env.block.time.seconds(),
                 env.block.time.seconds(),
             ),
@@ -2106,7 +2175,7 @@ fn partial_three_collaterals_one_slot_diff_ltv_big_amounts() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "custody0000".to_string(),
         amount: Uint128::from(69498951644u64),
-        msg: to_binary(&Cw20HookMsg::ExecuteBid {
+        msg: to_json_binary(&Cw20HookMsg::ExecuteBid {
             liquidator: "liquidator00000".to_string(),
             fee_address: Some("fee0000".to_string()),
             repay_address: Some("repay0000".to_string()),
@@ -2130,7 +2199,7 @@ fn partial_three_collaterals_one_slot_diff_ltv_big_amounts() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "custody0000".to_string(),
         amount: Uint128::from(2471406687u64),
-        msg: to_binary(&Cw20HookMsg::ExecuteBid {
+        msg: to_json_binary(&Cw20HookMsg::ExecuteBid {
             liquidator: "liquidator00000".to_string(),
             fee_address: Some("fee0000".to_string()),
             repay_address: Some("repay0000".to_string()),
@@ -2154,7 +2223,7 @@ fn partial_three_collaterals_one_slot_diff_ltv_big_amounts() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "custody0000".to_string(),
         amount: Uint128::from(50965898u64),
-        msg: to_binary(&Cw20HookMsg::ExecuteBid {
+        msg: to_json_binary(&Cw20HookMsg::ExecuteBid {
             liquidator: "liquidator00000".to_string(),
             fee_address: Some("fee0000".to_string()),
             repay_address: Some("repay0000".to_string()),
@@ -2272,7 +2341,7 @@ fn partial_three_collaterals_one_slot_diff_ltv_big_amounts_2() {
     };
 
     let res = query(deps.as_ref(), mock_env(), msg).unwrap();
-    let res: LiquidationAmountResponse = from_binary(&res).unwrap();
+    let res: LiquidationAmountResponse = from_json(&res).unwrap();
     assert_eq!(
         res,
         LiquidationAmountResponse {
@@ -2302,25 +2371,34 @@ fn partial_three_collaterals_one_slot_diff_ltv_big_amounts_2() {
     let env = mock_env();
     deps.querier.with_oracle_price(&[
         (
-            &("token0000".to_string(), "uusd".to_string()),
+            &("token0000".to_string()),
             &(
                 Decimal256::percent(1000),
+                10000000,
+                Decimal256::percent(1000),
+                10000000,
                 env.block.time.seconds(),
                 env.block.time.seconds(),
             ),
         ),
         (
-            &("token0001".to_string(), "uusd".to_string()),
+            &("token0001".to_string()),
             &(
                 Decimal256::percent(500),
+                5000000,
+                Decimal256::percent(500),
+                5000000,
                 env.block.time.seconds(),
                 env.block.time.seconds(),
             ),
         ),
         (
-            &("token0002".to_string(), "uusd".to_string()),
+            &("token0002".to_string()),
             &(
                 Decimal256::percent(11000),
+                110000000,
+                Decimal256::percent(11000),
+                110000000,
                 env.block.time.seconds(),
                 env.block.time.seconds(),
             ),
@@ -2330,7 +2408,7 @@ fn partial_three_collaterals_one_slot_diff_ltv_big_amounts_2() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "custody0000".to_string(),
         amount: Uint128::from(23089478u64),
-        msg: to_binary(&Cw20HookMsg::ExecuteBid {
+        msg: to_json_binary(&Cw20HookMsg::ExecuteBid {
             liquidator: "liquidator00000".to_string(),
             fee_address: Some("fee0000".to_string()),
             repay_address: Some("repay0000".to_string()),
@@ -2354,7 +2432,7 @@ fn partial_three_collaterals_one_slot_diff_ltv_big_amounts_2() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "custody0000".to_string(),
         amount: Uint128::from(390171057u64),
-        msg: to_binary(&Cw20HookMsg::ExecuteBid {
+        msg: to_json_binary(&Cw20HookMsg::ExecuteBid {
             liquidator: "liquidator00000".to_string(),
             fee_address: Some("fee0000".to_string()),
             repay_address: Some("repay0000".to_string()),
@@ -2378,7 +2456,7 @@ fn partial_three_collaterals_one_slot_diff_ltv_big_amounts_2() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "custody0000".to_string(),
         amount: Uint128::from(8046195u64),
-        msg: to_binary(&Cw20HookMsg::ExecuteBid {
+        msg: to_json_binary(&Cw20HookMsg::ExecuteBid {
             liquidator: "liquidator00000".to_string(),
             fee_address: Some("fee0000".to_string()),
             repay_address: Some("repay0000".to_string()),
@@ -2480,7 +2558,7 @@ fn not_enough_bids_for_one_of_two_col() {
     };
 
     let res = query(deps.as_ref(), mock_env(), msg).unwrap();
-    let res: LiquidationAmountResponse = from_binary(&res).unwrap();
+    let res: LiquidationAmountResponse = from_json(&res).unwrap();
     assert_eq!(
         res,
         LiquidationAmountResponse {
@@ -2506,17 +2584,23 @@ fn not_enough_bids_for_one_of_two_col() {
     let env = mock_env();
     deps.querier.with_oracle_price(&[
         (
-            &("token0000".to_string(), "uusd".to_string()),
+            &("token0000".to_string()),
             &(
                 Decimal256::percent(10),
+                100000,
+                Decimal256::percent(10),
+                100000,
                 env.block.time.seconds(),
                 env.block.time.seconds(),
             ),
         ),
         (
-            &("token0001".to_string(), "uusd".to_string()),
+            &("token0001".to_string()),
             &(
                 Decimal256::percent(5),
+                50000,
+                Decimal256::percent(5),
+                50000,
                 env.block.time.seconds(),
                 env.block.time.seconds(),
             ),
@@ -2526,7 +2610,7 @@ fn not_enough_bids_for_one_of_two_col() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "custody0000".to_string(),
         amount: Uint128::from(11862304u64),
-        msg: to_binary(&Cw20HookMsg::ExecuteBid {
+        msg: to_json_binary(&Cw20HookMsg::ExecuteBid {
             liquidator: "liquidator00000".to_string(),
             fee_address: Some("fee0000".to_string()),
             repay_address: Some("repay0000".to_string()),
@@ -2559,7 +2643,7 @@ fn not_enough_bids_for_one_of_two_col() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "custody0000".to_string(),
         amount: Uint128::from(6541171u64),
-        msg: to_binary(&Cw20HookMsg::ExecuteBid {
+        msg: to_json_binary(&Cw20HookMsg::ExecuteBid {
             liquidator: "liquidator00000".to_string(),
             fee_address: Some("fee0000".to_string()),
             repay_address: Some("repay0000".to_string()),
@@ -2665,7 +2749,7 @@ fn integration_test_simul() {
     };
 
     let res = query(deps.as_ref(), mock_env(), msg).unwrap();
-    let res: LiquidationAmountResponse = from_binary(&res).unwrap();
+    let res: LiquidationAmountResponse = from_json(&res).unwrap();
     assert_eq!(
         res,
         LiquidationAmountResponse {
@@ -2682,9 +2766,12 @@ fn integration_test_simul() {
 
     let env = mock_env();
     deps.querier.with_oracle_price(&[(
-        &("token0000".to_string(), "uusd".to_string()),
+        &("token0000".to_string()),
         &(
             Decimal256::percent(90),
+            900000,
+            Decimal256::percent(90),
+            900000,
             env.block.time.seconds(),
             env.block.time.seconds(),
         ),
@@ -2693,7 +2780,7 @@ fn integration_test_simul() {
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "custody0000".to_string(),
         amount: Uint128::from(8489891541u64),
-        msg: to_binary(&Cw20HookMsg::ExecuteBid {
+        msg: to_json_binary(&Cw20HookMsg::ExecuteBid {
             liquidator: "liquidator00000".to_string(),
             fee_address: Some("fee0000".to_string()),
             repay_address: Some("repay0000".to_string()),

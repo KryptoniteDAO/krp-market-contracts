@@ -1,0 +1,171 @@
+{
+  "contract_name": "mock-oracle",
+  "contract_version": "0.1.1",
+  "idl_version": "1.0.0",
+  "instantiate": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "InstantiateMsg",
+    "type": "object",
+    "additionalProperties": false
+  },
+  "execute": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "ExecuteMsg",
+    "oneOf": [
+      {
+        "type": "object",
+        "required": [
+          "update_price_feed"
+        ],
+        "properties": {
+          "update_price_feed": {
+            "type": "object",
+            "required": [
+              "id",
+              "price"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/definitions/Identifier"
+              },
+              "price": {
+                "type": "integer",
+                "format": "int64"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    ],
+    "definitions": {
+      "Identifier": {
+        "type": "string"
+      }
+    }
+  },
+  "query": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "QueryMsg",
+    "oneOf": [
+      {
+        "type": "object",
+        "required": [
+          "price_feed"
+        ],
+        "properties": {
+          "price_feed": {
+            "type": "object",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/definitions/Identifier"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    ],
+    "definitions": {
+      "Identifier": {
+        "type": "string"
+      }
+    }
+  },
+  "migrate": null,
+  "sudo": null,
+  "responses": {
+    "price_feed": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PriceFeedResponse",
+      "type": "object",
+      "required": [
+        "price_feed"
+      ],
+      "properties": {
+        "price_feed": {
+          "$ref": "#/definitions/PriceFeed"
+        }
+      },
+      "additionalProperties": false,
+      "definitions": {
+        "Identifier": {
+          "type": "string"
+        },
+        "Price": {
+          "type": "object",
+          "required": [
+            "conf",
+            "expo",
+            "price",
+            "publish_time"
+          ],
+          "properties": {
+            "conf": {
+              "description": "Confidence interval.",
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "expo": {
+              "description": "Exponent.",
+              "type": "integer",
+              "format": "int32"
+            },
+            "price": {
+              "description": "Price.",
+              "type": "integer",
+              "format": "int64"
+            },
+            "publish_time": {
+              "description": "Publish time.",
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          "additionalProperties": false
+        },
+        "PriceFeed": {
+          "type": "object",
+          "required": [
+            "ema_price",
+            "id",
+            "price"
+          ],
+          "properties": {
+            "ema_price": {
+              "description": "Exponentially-weighted moving average (EMA) price.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Price"
+                }
+              ]
+            },
+            "id": {
+              "description": "Unique identifier for this price.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Identifier"
+                }
+              ]
+            },
+            "price": {
+              "description": "Price.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Price"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    }
+  }
+}

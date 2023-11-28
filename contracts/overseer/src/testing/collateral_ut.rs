@@ -63,17 +63,23 @@ fn proper_compute_borrow_limit() {
 
     deps.querier.with_oracle_price(&[
         (
-            &("bsei".to_string(), "uusd".to_string()),
+            &("bsei".to_string()),
             &(
-                Decimal256::from_uint256(1000u128),
+                Decimal256::from_ratio(1000u64, 1u64),
+                1000,
+                Decimal256::from_ratio(1000u64, 1u64),
+                1000,
                 env.block.time.seconds(),
                 env.block.time.seconds(),
             ),
         ),
         (
-            &("batom".to_string(), "uusd".to_string()),
+            &("batom".to_string()),
             &(
-                Decimal256::from_uint256(2000u128),
+                Decimal256::from_ratio(2000u64, 1u64),
+                2000,
+                Decimal256::from_ratio(2000u64, 1u64),
+                2000,
                 env.block.time.seconds(),
                 env.block.time.seconds(),
             ),

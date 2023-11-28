@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ChangeOwnerMsg",
+  "type": "object",
+  "required": [
+    "new_owner"
+  ],
+  "properties": {
+    "new_owner": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}
